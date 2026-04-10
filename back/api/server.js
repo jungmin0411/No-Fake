@@ -8,8 +8,8 @@ import cors from 'cors';
 import { Sequelize, DataTypes } from 'sequelize';
 import crypto from 'crypto';
 
-// 1. 환경 설정 및 경로 정의
 dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -17,125 +17,273 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3002;
-// .env 파일에서 컨트랙트 주소 가져오기
+const PORT = process.env.PORT || 3001;
 const CONTRACT_ADDRESS_FROM_ENV = process.env.CONTRACT_ADDRESS;
 
-// 2. 데이터베이스 설정 (SQLite)
 const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: path.join(__dirname, 'database.sqlite'),
-    logging: false
+  dialect: 'sqlite',
+  storage: path.join(__dirname, 'database.sqlite'),
+  logging: false
 });
 
-// 래플 모델 정의 (기획 요구사항 반영)
 const Raffle = sequelize.define('Raffle', {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    title: { type: DataTypes.STRING, allowNull: false },       // 래플 명
-    category: { type: DataTypes.STRING },                      // 카테고리
-    imageUrl: { type: DataTypes.STRING },                      // 상품 이미지
-    startAt: { type: DataTypes.DATE },                         // 시작 시간
-    endAt: { type: DataTypes.DATE },                           // 종료 시간
-    firstPrizeCount: { type: DataTypes.INTEGER },              // 1등 수
-    secondPrizeCount: { type: DataTypes.INTEGER },             // 2등 수
-    status: { 
-        type: DataTypes.ENUM('READY', 'MINTING', 'CLOSED', 'REVEALED'),
-        defaultValue: 'READY' 
-    },
-    contractAddress: { type: DataTypes.STRING },               // .env에서 자동 주입됨
-    provenanceHash: { type: DataTypes.STRING }                  // 서버에서 자동 계산됨
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  title: { type: DataTypes.STRING, allowNull: false },
+  category: { type: DataTypes.STRING },
+  imageUrl: { type: DataTypes.STRING },
+  startAt: { type: DataTypes.DATE },
+  endAt: { type: DataTypes.DATE },
+  firstPrizeCount: { type: DataTypes.INTEGER },
+  secondPrizeCount: { type: DataTypes.INTEGER },
+  status: {
+    type: DataTypes.ENUM('READY', 'MINTING', 'CLOSED', 'REVEALED'),
+    defaultValue: 'READY'
+  },
+  contractAddress: { type: DataTypes.STRING },
+  provenanceHash: { type: DataTypes.STRING }
 });
 
-// 3. 블록체인(Ethers.js) 설정
+const normalizeRafflePayload = (body = {}) => ({
+  title: String(body.title ?? body.name ?? '').trim(),
+  category: String(body.category ?? '').trim() || null,
+  imageUrl: String(body.imageUrl ?? '').trim() || null,
+  startAt: body.startAt || null,
+  endAt: body.endAt || null,
+  firstPrizeCount: Number(body.firstPrizeCount ?? body.firstPrize ?? 0) || 0,
+  secondPrizeCount: Number(body.secondPrizeCount ?? body.secondPrize ?? 0) || 0,
+  status: body.status || 'READY'
+});
+
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const abiPath = path.join(__dirname, 'abi.json');
 const rawAbi = JSON.parse(fs.readFileSync(abiPath, 'utf8'));
 const contractABI = Array.isArray(rawAbi) ? rawAbi : rawAbi.abi;
-
 const contract = new ethers.Contract(CONTRACT_ADDRESS_FROM_ENV, contractABI, provider);
 
-// --- [API] 래플 관리 로직 ---
+const buildProvenanceHash = () => {
+  const metadataDir = path.join(__dirname, 'metadata', 'post-reveal');
+  const files = fs.readdirSync(metadataDir).filter((file) => file.endsWith('.json')).sort();
 
-// 1. 사용자용 래플 목록 조회
+  if (files.length === 0) {
+    throw new Error('post-reveal 메타데이터 파일이 없습니다.');
+  }
+
+  const combinedHashes = files
+    .map((file) => {
+      const fileData = fs.readFileSync(path.join(metadataDir, file));
+      return crypto.createHash('sha256').update(fileData).digest('hex');
+    })
+    .join('');
+
+  return crypto.createHash('sha256').update(combinedHashes).digest('hex');
+};
+
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'NOFAKE API server is running.',
+    endpoints: [
+      '/api/raffles',
+      '/api/admin/raffles',
+      '/api/metadata/:tokenId'
+    ]
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'ok',
+    port: PORT
+  });
+});
+
 app.get('/api/raffles', async (req, res) => {
-    try {
-        const raffles = await Raffle.findAll({ order: [['createdAt', 'DESC']] });
-        res.json(raffles);
-    } catch (error) {
-        console.error("목록 조회 에러:", error);
-        res.status(500).json({ error: "래플 목록을 불러오지 못했습니다." });
-    }
+  try {
+    const raffles = await Raffle.findAll({ order: [['createdAt', 'DESC']] });
+    res.json(raffles);
+  } catch (error) {
+    console.error('래플 목록 조회 에러:', error);
+    res.status(500).json({ error: '래플 목록을 불러오지 못했습니다.' });
+  }
 });
 
-// 2. 관리자용 래플 생성 (Provenance Hash 및 컨트랙트 주소 자동 처리)
+app.get('/api/admin/raffles', async (req, res) => {
+  try {
+    const raffles = await Raffle.findAll({ order: [['createdAt', 'DESC']] });
+    res.json({ success: true, data: raffles });
+  } catch (error) {
+    console.error('관리자 래플 목록 조회 에러:', error);
+    res.status(500).json({ success: false, error: '래플 목록을 불러오지 못했습니다.' });
+  }
+});
+
+app.get('/api/admin/raffles/:id', async (req, res) => {
+  try {
+    const raffle = await Raffle.findByPk(req.params.id);
+
+    if (!raffle) {
+      return res.status(404).json({ success: false, error: '래플을 찾을 수 없습니다.' });
+    }
+
+    res.json({ success: true, data: raffle });
+  } catch (error) {
+    console.error('관리자 래플 상세 조회 에러:', error);
+    res.status(500).json({ success: false, error: '래플 상세 정보를 불러오지 못했습니다.' });
+  }
+});
+
 app.post('/api/admin/raffles', async (req, res) => {
-    try {
-        const metadataDir = path.join(__dirname, 'metadata', 'post-reveal');
-        
-        // --- [핵심] Provenance Hash 계산 ---
-        const files = fs.readdirSync(metadataDir).filter(f => f.endsWith('.json')).sort();
-        if (files.length === 0) {
-            return res.status(400).json({ error: "post-reveal 폴더에 메타데이터 파일이 없습니다." });
-        }
+  try {
+    const payload = normalizeRafflePayload(req.body);
 
-        let combinedHashes = "";
-        files.forEach(file => {
-            const fileData = fs.readFileSync(path.join(metadataDir, file));
-            const fileHash = crypto.createHash('sha256').update(fileData).digest('hex');
-            combinedHashes += fileHash;
-        });
-        const finalProvenanceHash = crypto.createHash('sha256').update(combinedHashes).digest('hex');
-
-        // --- [핵심] DB 데이터 생성 ---
-        const newRaffle = await Raffle.create({
-            ...req.body, // title, category, imageUrl, startAt, endAt, firstPrizeCount, secondPrizeCount
-            contractAddress: CONTRACT_ADDRESS_FROM_ENV, // .env에서 가져온 주소 자동 주입
-            provenanceHash: finalProvenanceHash       // 서버에서 계산된 해시 자동 주입
-        });
-
-        res.status(201).json({ message: "래플 생성 및 데이터 봉인 완료", data: newRaffle });
-    } catch (error) {
-        console.error("생성 에러:", error);
-        res.status(400).json({ error: "래플 생성 실패", details: error.message });
+    if (!payload.title) {
+      return res.status(400).json({ error: 'title은 필수입니다.' });
     }
+
+    if (!payload.startAt || !payload.endAt) {
+      return res.status(400).json({ error: 'startAt, endAt은 필수입니다.' });
+    }
+
+    if (new Date(payload.startAt) >= new Date(payload.endAt)) {
+      return res.status(400).json({ error: '종료 시간은 시작 시간보다 뒤여야 합니다.' });
+    }
+
+    const newRaffle = await Raffle.create({
+      ...payload,
+      contractAddress: CONTRACT_ADDRESS_FROM_ENV,
+      provenanceHash: buildProvenanceHash()
+    });
+
+    res.status(201).json({
+      success: true,
+      message: '래플 생성 및 데이터 봉인 완료',
+      data: newRaffle
+    });
+  } catch (error) {
+    console.error('래플 생성 에러:', error);
+    res.status(400).json({ success: false, error: '래플 생성 실패', details: error.message });
+  }
 });
 
-// --- [API] NFT 메타데이터 로직 ---
+app.patch('/api/admin/raffles/:id/config', async (req, res) => {
+  try {
+    const raffle = await Raffle.findByPk(req.params.id);
+
+    if (!raffle) {
+      return res.status(404).json({ success: false, error: '래플을 찾을 수 없습니다.' });
+    }
+
+    const startAt = req.body.startAt || raffle.startAt;
+    const endAt = req.body.endAt || raffle.endAt;
+    const firstPrizeCount = Number(req.body.firstPrizeCount ?? req.body.firstPrize ?? raffle.firstPrizeCount ?? 0) || 0;
+    const secondPrizeCount = Number(req.body.secondPrizeCount ?? req.body.secondPrize ?? raffle.secondPrizeCount ?? 0) || 0;
+
+    if (!startAt || !endAt) {
+      return res.status(400).json({ success: false, error: 'startAt, endAt은 필수입니다.' });
+    }
+
+    if (new Date(startAt) >= new Date(endAt)) {
+      return res.status(400).json({ success: false, error: '종료 시간은 시작 시간보다 뒤여야 합니다.' });
+    }
+
+    await raffle.update({
+      startAt,
+      endAt,
+      firstPrizeCount,
+      secondPrizeCount,
+      status: 'MINTING'
+    });
+
+    res.json({ success: true, message: '래플 설정이 저장되었고 진행중으로 변경되었습니다.', data: raffle });
+  } catch (error) {
+    console.error('래플 설정 저장 에러:', error);
+    res.status(400).json({ success: false, error: '래플 설정 저장 실패', details: error.message });
+  }
+});
+
+app.post('/api/admin/raffles/:id/close', async (req, res) => {
+  try {
+    const raffle = await Raffle.findByPk(req.params.id);
+
+    if (!raffle) {
+      return res.status(404).json({ success: false, error: '래플을 찾을 수 없습니다.' });
+    }
+
+    await raffle.update({ status: 'CLOSED' });
+    res.json({ success: true, message: '래플이 종료되었습니다.', data: raffle });
+  } catch (error) {
+    console.error('래플 종료 에러:', error);
+    res.status(400).json({ success: false, error: '래플 종료 실패', details: error.message });
+  }
+});
+
+app.post('/api/admin/raffles/:id/reveal', async (req, res) => {
+  try {
+    const raffle = await Raffle.findByPk(req.params.id);
+
+    if (!raffle) {
+      return res.status(404).json({ success: false, error: '래플을 찾을 수 없습니다.' });
+    }
+
+    await raffle.update({ status: 'REVEALED' });
+    res.json({ success: true, message: '래플 결과가 공개되었습니다.', data: raffle });
+  } catch (error) {
+    console.error('래플 결과 공개 에러:', error);
+    res.status(400).json({ success: false, error: '래플 결과 공개 실패', details: error.message });
+  }
+});
+
+app.delete('/api/admin/raffles/:id', async (req, res) => {
+  try {
+    const raffle = await Raffle.findByPk(req.params.id);
+
+    if (!raffle) {
+      return res.status(404).json({ success: false, error: '래플을 찾을 수 없습니다.' });
+    }
+
+    await raffle.destroy();
+    res.json({ success: true, message: '래플이 삭제되었습니다.' });
+  } catch (error) {
+    console.error('래플 삭제 에러:', error);
+    res.status(400).json({ success: false, error: '래플 삭제 실패', details: error.message });
+  }
+});
 
 app.get('/api/metadata/:tokenId', async (req, res) => {
-    const tokenId = req.params.tokenId;
-    try {
-        const raffleId = await contract.tokenToRaffleId(tokenId);
-        const isRevealed = await contract.isRevealed(raffleId);
+  const tokenId = req.params.tokenId;
 
-        if (!isRevealed) {
-            return res.json({
-                name: "Nike X No-Fake Mystery Box",
-                description: "리빌 버튼을 누르면 당첨 결과가 공개됩니다!",
-                image: "https://nofake.s3.ap-northeast-2.amazonaws.com/hidden.png",
-                attributes: [{ "trait_type": "Status", "value": "Unrevealed" }]
-            });
-        }
+  try {
+    const raffleId = await contract.tokenToRaffleId(tokenId);
+    const isRevealed = await contract.isRevealed(raffleId);
 
-        const filePath = path.join(__dirname, 'metadata', 'post-reveal', `${tokenId}.json`);
-        if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ error: "파일 없음" });
-        }
-
-        let metadata = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-        metadata.contract_address = CONTRACT_ADDRESS_FROM_ENV;
-        metadata.external_url = `http://15.164.104.0:${PORT}/api/metadata/${tokenId}`;
-
-        return res.json(metadata);
-    } catch (error) {
-        res.status(500).json({ error: "서버 에러", details: error.message });
+    if (!isRevealed) {
+      return res.json({
+        name: 'Nike X No-Fake Mystery Box',
+        description: '리빌 버튼을 누르면 당첨 결과가 공개됩니다.',
+        image: 'https://nofake.s3.ap-northeast-2.amazonaws.com/hidden.png',
+        attributes: [{ trait_type: 'Status', value: 'Unrevealed' }]
+      });
     }
+
+    const filePath = path.join(__dirname, 'metadata', 'post-reveal', `${tokenId}.json`);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: '파일이 없습니다.' });
+    }
+
+    const metadata = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    metadata.contract_address = CONTRACT_ADDRESS_FROM_ENV;
+    metadata.external_url = `http://15.164.104.0:${PORT}/api/metadata/${tokenId}`;
+
+    return res.json(metadata);
+  } catch (error) {
+    return res.status(500).json({ error: '서버 에러', details: error.message });
+  }
 });
 
-// 서버 실행 및 DB 싱크
 sequelize.sync().then(() => {
-    console.log(`✅ DB Synced (Contract: ${CONTRACT_ADDRESS_FROM_ENV})`);
-    app.listen(PORT, () => {
-        console.log(`🚀 NOFAKE Server running on http://localhost:${PORT}`);
-    });
+  console.log(`DB Synced (Contract: ${CONTRACT_ADDRESS_FROM_ENV})`);
+  app.listen(PORT, () => {
+    console.log(`NOFAKE Server running on http://localhost:${PORT}`);
+  });
 });

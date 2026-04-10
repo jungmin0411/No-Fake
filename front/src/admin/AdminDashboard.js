@@ -139,6 +139,42 @@ const normalizeSearchValue = (value) =>
     .replace(/\s+/g, "")
     .trim();
 
+const STATUS_LABELS = {
+  READY: "예정",
+  MINTING: "진행중",
+  CLOSED: "종료",
+  REVEALED: "결과공개",
+};
+
+const getStatusLabel = (status) => STATUS_LABELS[status] || status || "예정";
+
+const getStatusTone = (status) => {
+  if (status === "MINTING") return "live";
+  if (status === "CLOSED" || status === "REVEALED") return "done";
+  return "draft";
+};
+
+const mapApiRaffleToUi = (raffle) => ({
+  id: raffle.id,
+  name: raffle.title || "",
+  status: raffle.status || "READY",
+  statusLabel: getStatusLabel(raffle.status || "READY"),
+  participants: raffle.participants || 0,
+  category: raffle.category || "기타",
+  conversionRate: raffle.conversionRate || 0,
+  dropoutRate: raffle.dropoutRate || 0,
+  avgEntryMinutes: raffle.avgEntryMinutes || 0,
+  createdAt: raffle.createdAt || new Date().toISOString(),
+  imageUrl: raffle.imageUrl || "",
+  description: raffle.description || "",
+  startAt: raffle.startAt ? toLocalInput(new Date(raffle.startAt)) : toLocalInput(new Date()),
+  endAt: raffle.endAt ? toLocalInput(new Date(raffle.endAt)) : toLocalInput(new Date(Date.now() + 86400000)),
+  firstPrize: raffle.firstPrizeCount || 0,
+  secondPrize: raffle.secondPrizeCount || 0,
+  contractAddress: raffle.contractAddress || "",
+  provenanceHash: raffle.provenanceHash || "",
+});
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [participantSeries, setParticipantSeries] = useState(initialParticipantSeries);
@@ -196,6 +232,35 @@ const AdminDashboard = () => {
     return () => {
       isMounted = false;
       clearInterval(id);
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchAdminRaffles = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/raffles`);
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Failed to load raffles");
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRaffles(Array.isArray(data.data) ? data.data.map(mapApiRaffleToUi) : []);
+      } catch (error) {
+        console.error("Failed to fetch admin raffles:", error);
+      }
+    };
+
+    fetchAdminRaffles();
+
+    return () => {
+      isMounted = false;
     };
   }, []);
 
@@ -280,6 +345,83 @@ const AdminDashboard = () => {
 
   const handleFormChange = (field, value) => {
     setRaffleForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleDeleteRaffle = async (raffleId, raffleName) => {
+    if (!window.confirm(`${raffleName} 래플을 삭제할까요?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/raffles/${raffleId}`, {
+        method: "DELETE",
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to delete raffle");
+      }
+
+      setRaffles((prev) => prev.filter((raffle) => raffle.id !== raffleId));
+      setLogs((prev) => [
+        {
+          id: Date.now() + 1,
+          title: "래플 삭제",
+          detail: `${raffleName} 래플이 삭제되었습니다.`,
+          time: "방금 전",
+        },
+        ...prev,
+      ]);
+    } catch (error) {
+      console.error("Failed to delete raffle:", error);
+      window.alert(error.message || "래플 삭제에 실패했습니다.");
+    }
+  };
+
+  const handleAddRaffleToApi = async () => {
+    const trimmedName = raffleForm.name.trim();
+    if (!trimmedName) return;
+    if (new Date(raffleForm.startAt) >= new Date(raffleForm.endAt)) return;
+
+    const payload = {
+      title: trimmedName,
+      category: raffleForm.category,
+      imageUrl: raffleForm.imageUrl.trim(),
+      startAt: new Date(raffleForm.startAt).toISOString(),
+      endAt: new Date(raffleForm.endAt).toISOString(),
+      firstPrizeCount: Number(raffleForm.firstPrize) || 0,
+      secondPrizeCount: Number(raffleForm.secondPrize) || 0,
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/raffles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to create raffle");
+      }
+
+      const savedRaffle = mapApiRaffleToUi(result.data);
+      setRaffles((prev) => [savedRaffle, ...prev]);
+      setLogs((prev) => [
+        {
+          id: Date.now() + 1,
+          title: "래플 생성",
+          detail: `${trimmedName} 래플이 ${raffleForm.category} 카테고리로 DB에 저장되었습니다.`,
+          time: "방금 전",
+        },
+        ...prev,
+      ]);
+      setRaffleForm(createInitialForm());
+      setIsAddOpen(false);
+    } catch (error) {
+      console.error("Failed to create raffle:", error);
+      window.alert(error.message || "래플 생성에 실패했습니다.");
+    }
   };
 
   const handleAddRaffle = () => {
@@ -659,7 +801,7 @@ const AdminDashboard = () => {
                       <p className="add-raffle-help">
                         생성과 동시에 기간, 이미지, 당첨 수가 저장됩니다. 이후 관리 화면에서 세부 조정만 하면 됩니다.
                       </p>
-                      <button className="add-raffle-submit" onClick={handleAddRaffle}>
+                      <button className="add-raffle-submit" onClick={handleAddRaffleToApi}>
                         래플 생성
                       </button>
                     </div>
@@ -677,7 +819,6 @@ const AdminDashboard = () => {
                 <span>당첨</span>
                 <span>관리</span>
               </div>
-
               {filteredRaffles.map((raffle) => (
                 <div key={raffle.id} className="raffle-row">
                   <div className="raffle-main raffle-main--table">
@@ -697,8 +838,8 @@ const AdminDashboard = () => {
                   </div>
 
                   <div className="raffle-table-cell">
-                    <span className={`mini-raffle-status mini-raffle-status--${raffle.status === "진행 중" ? "live" : raffle.status === "종료" ? "done" : "draft"}`}>
-                      {raffle.status}
+                    <span className={`mini-raffle-status mini-raffle-status--${getStatusTone(raffle.status)}`}>
+                      {raffle.statusLabel || getStatusLabel(raffle.status)}
                     </span>
                   </div>
 
@@ -707,17 +848,20 @@ const AdminDashboard = () => {
                   </div>
 
                   <div className="raffle-table-cell raffle-table-cell--strong">
-                    {raffle.participants.toLocaleString()}명
+                    {raffle.participants.toLocaleString()}?
                   </div>
 
                   <div className="raffle-table-cell raffle-table-cell--strong">
-                    1등 {raffle.firstPrize}명
+                    1? {raffle.firstPrize}?
                   </div>
 
                   <div className="raffle-actions">
                     <button className="mini-manage-btn" type="button" onClick={() => navigate(`/admin/raffle/${raffle.id}`)}>
                       <Settings size={14} />
-                      관리
+                      ??
+                    </button>
+                    <button className="mini-delete-btn" type="button" onClick={() => handleDeleteRaffle(raffle.id, raffle.name)}>
+                      ??
                     </button>
                   </div>
                 </div>
