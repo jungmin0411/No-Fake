@@ -157,20 +157,7 @@ export default function Participate({ walletAddress, events = [] }) {
               <p className="mint-card-title">{event.mintTitle}</p>
               <p className="mint-card-desc">{event.mintDescription}</p>
 
-              <div className="mint-cost-box">
-                <div>
-                  <span>민팅 비용</span>
-                  <strong>{event.mintPrice}</strong>
-                </div>
-                <div>
-                  <span>가스비 예상</span>
-                  <strong>{event.gasEstimate}</strong>
-                </div>
-                <div>
-                  <span>총 비용</span>
-                  <strong>{event.totalCost}</strong>
-                </div>
-              </div>
+            
 
               <button
                 type="button"
@@ -235,7 +222,7 @@ export default function Participate({ walletAddress, events = [] }) {
             </div>
           </div>
 
-          <div className="overview-column">
+          {/* <div className="overview-column">
             <div className="home-card">
               <h3 className="card-title">투명성 센터</h3>
 
@@ -258,7 +245,7 @@ export default function Participate({ walletAddress, events = [] }) {
                 블록체인에서 확인
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <div className="participate-guide-card">

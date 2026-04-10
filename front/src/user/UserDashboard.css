@@ -3040,6 +3040,22 @@ section p {
   background: #1e293b;
 }
 
+.participate-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 24px;
+}
+
+.participate-overview-grid .overview-column {
+  width: min(820px, 100%);
+}
+
+.participate-overview-grid .home-card {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 
 /* 사용자 화면 전체 공통 폭 */
 .app-main {
