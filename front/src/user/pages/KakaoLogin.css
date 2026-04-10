@@ -1,0 +1,267 @@
+.login-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(79, 70, 229, 0.16), transparent 32%),
+    linear-gradient(180deg, #050816 0%, #090d1d 100%);
+  display: flex;
+  flex-direction: column;
+  color: #f8fafc;
+}
+
+.login-nav {
+  padding: 20px 40px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nav-logo {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  cursor: pointer;
+  color: #f8fafc;
+}
+
+.login-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 34px 120px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 1240px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 40px 64px 36px;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 36%),
+    linear-gradient(180deg, rgba(20, 27, 49, 0.98), rgba(12, 18, 35, 0.98));
+  border: 1px solid rgba(183, 201, 255, 0.14);
+  box-shadow: 0 36px 90px rgba(0, 0, 0, 0.42);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.nike-swoosh {
+  font-size: 60px;
+  font-weight: 900;
+  letter-spacing: -1.5px;
+  color: #ffffff;
+  margin-bottom: 22px;
+}
+
+.login-header h1 {
+  font-size: 68px;
+  line-height: 1.05;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0 0 16px;
+  letter-spacing: -0.05em;
+}
+
+.login-header p {
+  font-size: 17px;
+  color: #e5edf9;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.kakao-btn {
+  width: 100%;
+  min-height: 78px;
+  padding: 20px 24px;
+  background: #fee500;
+  border: none;
+  border-radius: 20px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2f1c13;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 24px 44px rgba(254, 229, 0, 0.2);
+}
+
+.kakao-btn:hover:not(:disabled) {
+  background: #f7de00;
+  transform: translateY(-1px);
+}
+
+.kakao-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.kakao-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-inner,
+.btn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(58, 29, 29, 0.25);
+  border-top-color: #3a1d1d;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.login-notice {
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-left: 5px solid #ff4d4f;
+  padding: 18px 22px 18px 24px;
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.login-notice p {
+  font-size: 18px;
+  color: #f8fafc;
+  margin: 0 0 6px;
+  line-height: 1.55;
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.login-notice p:last-child {
+  margin: 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #d4ddf0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.login-terms {
+  font-size: 16px;
+  color: #e2eaf8;
+  text-align: center;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.login-terms span {
+  color: #ffffff;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.login-header,
+.kakao-btn,
+.divider,
+.login-terms {
+  max-width: 980px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.login-notice {
+  max-width: 1040px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.divider span {
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .login-nav {
+    padding: 18px 20px;
+  }
+
+  .login-container {
+    padding: 28px 16px;
+  }
+
+  .login-card {
+    max-width: 100%;
+    gap: 22px;
+    padding: 32px 24px;
+    border-radius: 24px;
+  }
+
+  .nike-swoosh {
+    font-size: 40px;
+    margin-bottom: 22px;
+  }
+
+  .login-header h1 {
+    font-size: 52px;
+  }
+
+  .login-header p {
+    font-size: 15px;
+  }
+
+  .kakao-btn {
+    min-height: 72px;
+    font-size: 18px;
+  }
+
+  .login-notice {
+    padding: 18px;
+  }
+
+  .login-notice p {
+    font-size: 16px;
+  }
+
+  .login-terms {
+    font-size: 15px;
+  }
+
+  .divider {
+    font-size: 13px;
+  }
+
+  .login-header,
+  .kakao-btn,
+  .divider,
+  .login-terms {
+    max-width: 100%;
+  }
+
+  .login-notice {
+    max-width: 100%;
+  }
+}

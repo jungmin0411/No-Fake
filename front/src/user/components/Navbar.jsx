@@ -5,8 +5,8 @@ const menus = [
   { to: "/draw-status", label: "드로우 현황" },
   { to: "/my-wallet", label: "내 지갑" },
   { to: "/puzzle-exchange", label: "퍼즐 교환소" },
-//   { to: "/transparency", label: "투명성 센터" },
- // { to: "/event-overview", label: "이벤트 개요" },
+  { to: "/marketplace", label: "거래소" },
+  { to: "/transparency-center", label: "투명성 센터" },
 ];
 
 export default function Navbar() {
@@ -16,9 +16,7 @@ export default function Navbar() {
         <NavLink
           key={menu.to}
           to={menu.to}
-          className={({ isActive }) =>
-            isActive ? "nav-item active" : "nav-item"
-          }
+          className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
         >
           {menu.label}
         </NavLink>

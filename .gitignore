@@ -1,0 +1,22 @@
+# 1. 보안 민감 파일 (절대 업로드 금지) [cite: 25]
+.env
+*.pem
+*.key
+
+# 2. 의존성 및 라이브러리 [cite: 25]
+node_modules/
+dist/
+build/
+
+# 3. OS 및 에디터 설정 파일 [cite: 25]
+.DS_Store
+.vscode/
+.idea/
+
+# 4. 로그 파일 [cite: 25]
+*.log
+npm-debug.log*
+
+# 5. 프로젝트 특화 제외 항목
+# 백엔드 API 테스트 시 생성되는 임시 파일 등
+backend/auth/*.tmp

@@ -1,0 +1,997 @@
+/* ────────────────────────────────────────
+   CSS 변수
+   — 전체 컴포넌트에서 공통으로 사용하는 색상 토큰
+   — 수정 시 이 블록만 바꾸면 전체 테마가 바뀜
+──────────────────────────────────────── */
+:root {
+  --color-orange: #f97316; /* 민팅 마감 버튼, 당첨자 수 강조 색 */
+  --color-green:  #22c55e; /* 결과 공개 완료, 해시 서명 성공 색 */
+  --color-muted:  #4b5563; /* 비활성 상태 도트, 장식 아이콘 색 */
+  --color-bg:     #1e1e2e; /* 카드 배경색 */
+  --color-surface:#16161f; /* 페이지 전체 배경, 인풋 배경 */
+  --color-border: #2e2e3e; /* 카드·인풋 테두리 */
+  --color-text:   #e2e8f0; /* 기본 텍스트 색 */
+  --color-sub:    #94a3b8; /* 보조 레이블, 설명 텍스트 색 */
+  --color-hint:   #64748b; /* 힌트·플레이스홀더 등 약한 텍스트 */
+}
+
+/* ────────────────────────────────────────
+   레이아웃
+──────────────────────────────────────── */
+
+/* 페이지 최상위 래퍼 — 전체 화면 높이 확보 */
+.nf-root {
+  min-height: 100vh;
+  background: var(--color-surface);
+  padding: 24px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+/* 콘텐츠 최대 너비 제한 및 세로 간격 */
+.nf-app {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ────────────────────────────────────────
+   헤더
+──────────────────────────────────────── */
+
+/* 타이틀(좌)과 액션 버튼(우)을 양 끝 배치 */
+.nf-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 4px;
+}
+
+.nf-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin: 0;
+  color: #fff;
+}
+
+.nf-subtitle {
+  font-size: 13px;
+  color: var(--color-sub);
+  margin: 2px 0 0;
+}
+
+/* 헤더 우측 버튼 그룹 — 가로 나열 */
+.nf-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ────────────────────────────────────────
+   헤더 버튼 (참여자 QR, 리셋)
+   — 어두운 배경에 맞는 ghost 스타일
+──────────────────────────────────────── */
+
+/* 기본 ghost 버튼 — 테두리만 있는 투명 스타일 */
+.nf-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.nf-btn-ghost:hover {
+  background: #2a2a3e;
+  border-color: #3e3e54;
+}
+
+/* 파란 강조 variant — "참여자 QR" 버튼에 사용 */
+.nf-btn-ghost--blue {
+  background: #1e2d4a;
+  color: #60a5fa;
+  border-color: #2d4a7a;
+}
+.nf-btn-ghost--blue:hover {
+  background: #243354;
+  border-color: #3a5c8a;
+}
+
+/* ────────────────────────────────────────
+   적용 버튼
+   — 당첨자 수 입력 옆에 위치하는 보조 액션 버튼
+──────────────────────────────────────── */
+.nf-btn-apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #3e3e54;
+  background: #2a2a3e;
+  color: var(--color-text);
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.nf-btn-apply:hover { background: #333348; }
+
+/* ────────────────────────────────────────
+   그리드
+   — 좌우 2열 카드 레이아웃
+   — 620px 이하에서는 1열로 전환
+──────────────────────────────────────── */
+.nf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 620px) {
+  .nf-grid { grid-template-columns: 1fr; }
+}
+
+/* 각 열 내부 카드들을 세로로 쌓음 */
+.nf-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ────────────────────────────────────────
+   카드
+──────────────────────────────────────── */
+
+/* 기본 카드 컨테이너 */
+.nf-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+/* 카드 내부 섹션 간격이 필요한 경우 추가 */
+.nf-card-flex {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 카드 섹션 제목 — 아이콘 + 대문자 레이블 */
+.nf-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+/* ────────────────────────────────────────
+   Provenance Hash
+──────────────────────────────────────── */
+
+/* 해시 문자열 표시 박스 — 모노스페이스 폰트로 가독성 확보 */
+.nf-hash-box {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 11px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  word-break: break-all; /* 긴 해시가 줄바꿈 없이 넘치지 않도록 */
+  color: #94a3b8;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* Etherscan 외부 링크 스타일 */
+.nf-hash-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #60a5fa;
+  text-decoration: none;
+}
+.nf-hash-link:hover { text-decoration: underline; }
+
+/* ────────────────────────────────────────
+   통계
+──────────────────────────────────────── */
+
+/* 통계 항목 행 — 구분선으로 항목 분리 */
+.nf-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+/* 마지막 행은 하단 구분선 및 패딩 제거 */
+.nf-stat-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.nf-stat-label {
+  font-size: 12px;
+  color: var(--color-sub);
+  margin-bottom: 2px;
+}
+
+/* 큰 숫자 표시 — 참여자 수, 당첨자 수 */
+.nf-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #fff;
+}
+
+/* 당첨자 수 강조 색상 오버라이드 */
+.nf-stat-value-orange { color: var(--color-orange) !important; }
+
+.nf-stat-sub {
+  font-size: 12px;
+  color: var(--color-hint);
+  margin-top: 2px;
+}
+
+/* 참여율 진행 바 컨테이너 */
+.nf-progress-bar {
+  width: 120px;
+  height: 3px;
+  background: var(--color-border);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+/* 진행 바 채움 — width는 JS에서 인라인 스타일로 설정 */
+.nf-progress-fill {
+  height: 100%;
+  background: var(--color-orange);
+  border-radius: 2px;
+}
+
+/* 참여자 아이콘 버튼 — 클릭하면 참여자 목록 모달 열림 */
+.nf-stat-icon-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--color-hint);
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+/* 호버 시 파란 강조 */
+.nf-stat-icon-btn:hover {
+  color: #60a5fa;
+  background: #1e2d4a;
+  border-color: #2d4a7a;
+}
+
+/* 상태 도트 목록 */
+.nf-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+.nf-status-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+/* 상태 표시 도트 — background는 JS에서 상태에 따라 동적으로 지정 */
+.nf-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.3s; /* 상태 전환 시 부드럽게 색상 변경 */
+}
+
+/* ────────────────────────────────────────
+   설정 단계
+──────────────────────────────────────── */
+
+/* 섹션 소제목 레이블 — 아이콘 + 텍스트 가로 정렬 */
+.nf-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* 당첨자 수 설정 레이블 */
+.nf-winner-label {
+  font-size: 13px;
+  color: var(--color-sub);
+  display: block;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* 입력창 + 적용 버튼 가로 배치 */
+.nf-winner-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/*
+  당첨자 수 입력창
+  — type="text" inputMode="numeric" 사용으로 스핀 버튼 없음
+  — 숫자만 입력 허용은 onChange 정규식으로 처리
+*/
+.nf-winner-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+}
+.nf-winner-input:focus { border-color: #3b5998; } /* 포커스 시 테두리 강조 */
+
+/* 입력 힌트 텍스트 */
+.nf-winner-hint {
+  font-size: 12px;
+  color: var(--color-hint);
+  margin-top: 5px;
+  text-align: center;
+}
+
+/* ────────────────────────────────────────
+   민팅 마감
+──────────────────────────────────────── */
+.nf-mint-section { display: flex; flex-direction: column; gap: 8px; }
+.nf-mint-desc { font-size: 13px; color: var(--color-sub); }
+
+/* 민팅 마감 버튼 — 활성 상태: 주황색 강조 */
+.nf-btn-mint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: var(--color-orange);
+  color: #fff;
+  width: 100%;
+  transition: opacity 0.15s;
+}
+.nf-btn-mint:hover:not(:disabled) { opacity: 0.88; }
+.nf-btn-mint:disabled { cursor: not-allowed; }
+
+/* 마감 완료 상태 — 회색으로 전환하여 비활성 느낌 표현 */
+.nf-btn-mint--closed {
+  background: #2a2a3e !important;
+  border: 1px solid #3e3e54 !important;
+  color: var(--color-sub) !important;
+  font-weight: 400 !important;
+}
+
+/* ────────────────────────────────────────
+   해시 서명 완료 박스
+   — 항상 표시되는 안내 박스 (조작 불가 보증 메시지)
+──────────────────────────────────────── */
+.nf-hash-done {
+  background: #0f2318;
+  border: 1px solid #1a3a2a;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.nf-hash-done__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4ade80;
+  margin-bottom: 5px;
+}
+.nf-hash-done__desc {
+  font-size: 12px;
+  color: #86efac;
+  line-height: 1.6;
+}
+
+/* ────────────────────────────────────────
+   마무리 단계
+   — 결과 공개 섹션 전체 래퍼
+──────────────────────────────────────── */
+.nf-finalize {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* 되돌릴 수 없음 경고 박스 — 노란 톤 */
+.nf-warning-box {
+  display: flex;
+  gap: 10px;
+  background: #1f1a0e;
+  border: 1px solid #3d3010;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #fbbf24;
+  line-height: 1.6;
+  margin-bottom: 14px;
+  margin-top: 8px;
+}
+
+/*
+  결과 공개(Reveal) 버튼 — 3가지 상태:
+  1. 기본 (민팅 미마감): 회색 비활성
+  2. --active (민팅 마감 후): 초록 활성
+  3. --done (결과 공개 완료): 진한 초록 완료
+*/
+.nf-btn-reveal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  width: 100%;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: not-allowed; /* 기본값: 비활성 */
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-hint);
+  transition: background 0.15s, opacity 0.15s;
+}
+
+/* 민팅 마감 후 활성화: 초록 배경 + 초록 텍스트 */
+.nf-btn-reveal--active {
+  cursor: pointer;
+  background: #14532d;
+  color: #4ade80;
+  border-color: #16a34a;
+}
+.nf-btn-reveal--active:hover { background: #166534; }
+
+/* 결과 공개 완료 후: 더 어두운 초록으로 고정 */
+.nf-btn-reveal--done {
+  background: #0f2318;
+  color: #4ade80;
+  border-color: #1a3a2a;
+  cursor: default;
+}
+
+/* 버튼 하단 상태 안내 텍스트 */
+.nf-reveal-hint {
+  font-size: 12px;
+  color: var(--color-hint);
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* ────────────────────────────────────────
+   모달 공통
+──────────────────────────────────────── */
+
+/* 반투명 어두운 오버레이 — 모달 뒤에 깔림 */
+.nf-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+/* 모달 컨테이너 기본 스타일 */
+.nf-modal {
+  background: var(--color-bg);
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  padding: 20px;
+}
+
+/* QR 모달: 고정 너비 소형 */
+.nf-modal--sm { width: 280px; }
+
+/* 참여자 목록 모달: 스크롤 가능한 중형 */
+.nf-modal--md {
+  width: 420px;
+  max-width: 92vw;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 모달 헤더 — 제목(좌) + 닫기(우) */
+.nf-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.nf-modal__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+/* × 닫기 버튼 */
+.nf-modal__close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--color-sub);
+  padding: 0 4px;
+  line-height: 1;
+}
+.nf-modal__close:hover { color: var(--color-text); }
+
+/* ────────────────────────────────────────
+   QR 모달
+──────────────────────────────────────── */
+
+/* QR 이미지 + 안내 텍스트 + URL을 세로 중앙 정렬 */
+.nf-qr-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.nf-qr-hint {
+  font-size: 12px;
+  color: var(--color-sub);
+  text-align: center;
+  line-height: 1.6;
+}
+/* QR URL 원문 표시 — 복사용 모노스페이스 박스 */
+.nf-qr-url {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 10px;
+  color: var(--color-hint);
+  word-break: break-all;
+  text-align: center;
+  background: var(--color-surface);
+  padding: 6px 8px;
+  border-radius: 6px;
+  width: 100%;
+  border: 1px solid var(--color-border);
+}
+
+/* ────────────────────────────────────────
+   참여자 목록 모달
+──────────────────────────────────────── */
+
+/* 참여자 총원 요약 행 */
+.nf-participants-count {
+  font-size: 13px;
+  color: var(--color-sub);
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+.nf-participants-count strong {
+  color: #fff;
+}
+
+/* 스크롤 가능한 참여자 카드 목록 */
+.nf-participants-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 개별 참여자 카드 */
+.nf-participant-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: background 0.12s;
+}
+.nf-participant-item:hover { background: #1a1a2a; }
+
+/* 아바타 원형 — ID를 3자리로 표시 */
+.nf-participant-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1e2d4a;
+  border: 1px solid #2d4a7a;
+  color: #60a5fa;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: "SF Mono", monospace;
+}
+
+/* 이름 + 지갑 주소 영역 — min-width:0 으로 텍스트 말줄임 가능 */
+.nf-participant-info {
+  flex: 1;
+  min-width: 0;
+}
+.nf-participant-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+/* 지갑 주소는 모노스페이스 + 약한 색상 */
+.nf-participant-addr {
+  font-size: 11px;
+  color: var(--color-hint);
+  font-family: "SF Mono", "Fira Code", monospace;
+  margin-top: 1px;
+}
+
+/* 참여 시각 — 우측 고정 너비 */
+.nf-participant-time {
+  font-size: 11px;
+  color: var(--color-hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ────────────────────────────────────────
+   토스트 알림
+   — 하단 중앙에 잠깐 떴다 사라지는 알림 메시지
+──────────────────────────────────────── */
+.nf-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px); /* 기본: 살짝 아래에 숨겨진 상태 */
+  background: #e2e8f0;
+  color: #0f172a;
+  font-size: 13px;
+  padding: 9px 18px;
+  border-radius: 20px;
+  opacity: 0;
+  pointer-events: none; /* 표시 중에도 클릭 이벤트 차단 */
+  transition: opacity 0.25s, transform 0.25s;
+  white-space: nowrap;
+  z-index: 9999;
+}
+/* 활성 상태 — 위로 올라오며 페이드인 */
+.nf-toast--show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ────────────────────────────────────────
+   커스텀 확인 모달
+   — window.confirm 대신 사용하는 디자인 일체형 모달
+──────────────────────────────────────── */
+
+/* 확인 모달 크기 — sm보다 약간 넓음 */
+.nf-modal--confirm {
+  width: 320px;
+  max-width: 92vw;
+}
+
+/* 본문 안내 메시지 */
+.nf-confirm-message {
+  font-size: 13px;
+  color: var(--color-sub);
+  line-height: 1.65;
+  margin-bottom: 14px;
+}
+
+/* 경고 박스 소형 variant — 결과 공개 모달에서 사용 */
+.nf-warning-box--sm {
+  font-size: 12px;
+  padding: 8px 10px;
+  margin-bottom: 16px;
+  margin-top: 0;
+}
+
+/* 취소 / 확인 버튼 가로 배치 */
+.nf-confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* 취소 버튼 — 기존 nf-btn-apply와 동일 스타일, flex 균등 */
+.nf-confirm-cancel {
+  flex: 1;
+  padding: 10px 0;
+  justify-content: center;
+}
+
+/* 확인 버튼 공통 */
+.nf-confirm-ok {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  color: #fff;
+  transition: opacity 0.15s;
+}
+.nf-confirm-ok:hover { opacity: 0.88; }
+
+/* 민팅 마감 확인: 주황 */
+.nf-confirm-ok--orange {
+  background: var(--color-orange);
+}
+
+/* 결과 공개 확인: 초록 */
+.nf-confirm-ok--green {
+  background: #16a34a;
+}
+
+.nf-page-header {
+  display: flex;
+  align-items: center; /* 버튼과 제목 높이 맞춤 */
+  margin-bottom: 30px;
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 20px;
+}
+
+.nf-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* 관리하기 페이지 전용 타이틀 강조 */
+.nf-title {
+  font-size: 24px;
+  background: linear-gradient(to right, #fff, #888);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===== Layout Polish Overrides ===== */
+.nf-app {
+  max-width: 1160px;
+  gap: 22px;
+}
+
+.nf-page-header {
+  align-items: flex-start;
+  padding-bottom: 24px;
+  margin-bottom: 10px;
+}
+
+.nf-title {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.nf-subtitle {
+  margin-top: 6px;
+  font-size: 15px;
+}
+
+.nf-grid {
+  grid-template-columns: minmax(340px, 1fr) minmax(460px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.nf-col {
+  gap: 18px;
+}
+
+.nf-card,
+.nf-finalize {
+  border-radius: 22px;
+  padding: 24px 26px;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.14);
+}
+
+.nf-card-title,
+.nf-section-label {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.nf-hash-box {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nf-stat-row {
+  padding: 16px 0;
+}
+
+.nf-stat-value {
+  font-size: 48px;
+  letter-spacing: -0.04em;
+}
+
+.nf-stat-sub {
+  font-size: 15px;
+}
+
+.nf-progress-bar {
+  width: 180px;
+  height: 6px;
+  margin-top: 12px;
+}
+
+.nf-winner-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nf-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nf-input-group label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.nf-date-input,
+.nf-prize-row input {
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #3a3a4f;
+  background: #12121a;
+  color: #fff;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+.nf-date-input:focus,
+.nf-prize-row input:focus {
+  outline: none;
+  border-color: #5b55ff;
+  box-shadow: 0 0 0 3px rgba(91, 85, 255, 0.14);
+}
+
+.nf-prize-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nf-prize-row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.nf-prize-row span {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.nf-btn-apply--full,
+.nf-btn-mint,
+.nf-btn-reveal {
+  min-height: 58px;
+  border-radius: 14px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.nf-status-badge {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+}
+
+.nf-countdown-text {
+  margin-top: 8px;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.nf-finalize {
+  padding-top: 26px;
+}
+
+.nf-action-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.nf-action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 0 0;
+}
+
+.nf-action-card + .nf-action-card {
+  border-top: 1px solid var(--color-border);
+  padding-top: 22px;
+}
+
+.nf-action-card h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.nf-action-card p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-sub);
+  line-height: 1.65;
+}
+
+.nf-warning-box {
+  margin-top: 10px;
+  border-radius: 14px;
+}
+
+@media (max-width: 860px) {
+  .nf-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nf-title {
+    font-size: 32px;
+  }
+
+  .nf-card,
+  .nf-finalize {
+    padding: 20px;
+  }
+}

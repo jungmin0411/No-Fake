@@ -1,159 +1,55 @@
-// import React from 'react';
-// import Dashboard from './admin/Dashboard'; // admin 폴더 안에 있는 Dashboard를 가져옵니다.
-// import './App.css';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-// function App() {
-//   return (
-//     <div className="App">
-//       {/* 기본 샘플 코드를 지우고, 우리가 만든 대시보드 컴포넌트를 넣습니다. */}
-//       <Dashboard />
-//     </div>
-//   );
-// }
+// 우리가 만든 컴포넌트들
+import NikeWebsite from './Nike'           // 1단계: 나이키 홈 페이지 
+import NikeRaffle from './NikeRaffle';           // 2단계: 나이키 래플 페이지
+import Login from './user/pages/KakaoLogin';  // 3단계: 카카오 로그인
+import UserDashboard from './user/UserDashboard'; // 4단계: 사용자 대시보드
+import KakaoCallback from './user/pages/KakaoCallback'; // 로그인 처리 콜백
 
-// export default App;
-//2026.04.06 해당 선 위의 코드를 주석 처리하고 아래 코드로 대체함
-// import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-// import "./App.css";
-
-// import Header from "./user/components/Header";
-// import Navbar from "./user/components/Navbar";
-
-// import Login from "./user/pages/Login";
-// import UserDashboard from "./user/pages/UserDashboard";
-// import Participate from "./user/pages/Participate";
-// import DrawStatus from "./user/pages/DrawStatus";
-// import MyWallet from "./user/pages/MyWallet";
-// import PuzzleExchange from "./user/pages/PuzzleExchange";
-// import Transparency from "./user/pages/Transparency";
-// import EventOverview from "./user/pages/EventOverview";
-
-//  import AdminDashboard from "./admin/pages/AdminDashboard"; //
-//  import EventControl from "./admin/pages/EventControl";//
-//  import RedeemManagement from "./admin/pages/RedeemManagement";//
-
-// function UserLayout({ children }) {
-//   return (
-//     <div>
-//       <Header />
-//       <Navbar />
-//       <main style={{ padding: "20px" }}>{children}</main>
-//     </div>
-//   );
-// }
-
-// function App() {
-//   return (
-//     <BrowserRouter>
-//       <Routes>
-//         {/* 로그인 */}
-//         <Route path="/login" element={<Login />} />
-
-//         {/* 로그인 이후 페이지 */}
-//         <Route
-//           path="/"
-//           element={
-//             <UserLayout>
-//               <UserDashboard />
-//             </UserLayout>
-//           }
-//         />
-//         <Route
-//           path="/participate/:slug"
-//           element={
-//             <UserLayout>
-//               <Participate />
-//             </UserLayout>
-//           }
-//         />
-//         <Route
-//           path="/draw-status"
-//           element={
-//             <UserLayout>
-//               <DrawStatus />
-//             </UserLayout>
-//           }
-//         />
-//         <Route
-//           path="/my-wallet"
-//           element={
-//             <UserLayout>
-//               <MyWallet />
-//             </UserLayout>
-//           }
-//         />
-//         <Route
-//           path="/puzzle-exchange"
-//           element={
-//             <UserLayout>
-//               <PuzzleExchange />
-//             </UserLayout>
-//           }
-//         />
-//         <Route
-//           path="/event-overview/:slug"
-//           element={
-//             <UserLayout>
-//               <EventOverview />
-//             </UserLayout>
-//           }
-//         />
-//         <Route
-//           path="/transparency"
-//           element={
-//             <UserLayout>
-//               <Transparency />
-//             </UserLayout>
-//           }
-//         />
-//         <Route
-//           path="/event-overview"
-//           element={
-//           <Navigate to="/event-overview/jordan-preorder" replace />}
-//           />
-
-//         <Route path="/admin" element={<AdminDashboard />} /> 
-//         <Route path="/admin/event-control" element={<EventControl />} />
-//         <Route path="/admin/redeem-management" element={<RedeemManagement />} />
-//       </Routes>
-//     </BrowserRouter>
-//   );
-// }
-
-// export default App;
-
-/////
-// import React from 'react';
-// import Dashboard from './user/UserDashboard'; 
-// import AdminDashboard from "../admin/Dashboard";
-// import './App.css';
-
-// function App() {
-//   return (
-//     <div className="App">
-//       {/* 기본 샘플 코드를 지우고, 우리가 만든 대시보드 컴포넌트를 넣습니다. */}
-//       <Dashboard />
-//     </div>
-    
-    
-//   );
-// }
-
-// export default App;
-
-
-import React from "react";
-import Dashboard from "./user/UserDashboard";
-import AdminDashboard from "./admin/Dashboard";
-import "./App.css";
+import AdminDashboard from './admin/AdminDashboard'; // 관리자 대시보드 (통계 및 목록)
+import NoFakeDashboard from './admin/Raffle';    // 관리자 래플 상세 관리 (기존 이미지의 그 화면)
 
 function App() {
-  const isAdminPath = window.location.pathname.startsWith("/admin");
 
   return (
-    <div className="App">
-      {isAdminPath ? <AdminDashboard /> : <Dashboard />}
-    </div>
+    <Router>
+      <div className="App">
+        <Routes>
+          {/* 사용자 흐름 */}
+          {/* [1단계] 메인 나이키 홈 */}
+          <Route path="/" element={<NikeWebsite />} />
+ 
+          {/* [2단계] 래플 랜딩 페이지 */}
+          <Route path="/raffle" element={<NikeRaffle />} />
+
+          {/* [3단계] 인증: 카카오 로그인 페이지 */}
+          <Route path="/login" element={<Login />} />
+          
+          {/* 카카오 인증 후 돌아오는 주소 (필요 시) */}
+          <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
+
+          {/* [4단계] 목적지: 사용자 대시보드 */}
+          <Route path="/dashboard/*" element={<Navigate to="/home" replace />} />
+          <Route path="/home" element={<UserDashboard />} />
+          <Route path="/participate/:slug" element={<UserDashboard />} />
+          <Route path="/draw-status" element={<UserDashboard />} />
+          <Route path="/my-wallet" element={<UserDashboard />} />
+          <Route path="/puzzle-exchange" element={<UserDashboard />} />
+          <Route path="/marketplace" element={<UserDashboard />} />
+          <Route path="/transparency-center" element={<UserDashboard />} />
+
+          {/* 관리자 흐름 */}
+          {/* 1. 전체 상황판 (통계 및 목록) */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/AdminDashboard" element={<AdminDashboard />} />
+          
+          {/* 2. 개별 래플 상세 관리 (기존 이미지의 그 화면) */}
+          <Route path="/admin/raffle/:id" element={<NoFakeDashboard />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

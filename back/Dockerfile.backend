@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 의존성 설치를 위해 패키지 파일 먼저 복사
+COPY package*.json ./
+RUN npm install
+
+# 전체 소스 코드 복사
+COPY . .
+
+# .env 파일은 docker-compose에서 주입하므로 COPY하지 않아도 되지만, 
+# 로컬 빌드 테스트를 위해 포함할 수 있습니다.
+
+EXPOSE 3001
+
+CMD ["node", "index.js"]
