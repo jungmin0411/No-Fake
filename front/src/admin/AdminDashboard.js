@@ -28,6 +28,20 @@ const CATEGORY_OPTIONS = ["스니커즈", "의류", "액세서리", "기타"];
 const defaultImage =
   "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80";
 
+const parseJsonResponse = async (response) => {
+  const text = await response.text();
+
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(
+      text.startsWith("<!DOCTYPE") || text.startsWith("<html")
+        ? "API 서버 응답이 HTML로 돌아왔습니다. front/.env의 REACT_APP_API_BASE_URL과 백엔드 실행 상태를 확인해주세요."
+        : "서버 응답을 해석하지 못했습니다."
+    );
+  }
+};
+
 const defaultLogs = [
   {
     id: 1,
@@ -199,7 +213,7 @@ const AdminDashboard = () => {
     const fetchParticipantStats = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/admin/contract-stats`);
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
 
         if (!response.ok || !data.success) {
           throw new Error(data.error || "Failed to load contract stats");
@@ -237,7 +251,7 @@ const AdminDashboard = () => {
     const fetchAdminRaffles = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/admin/raffles`);
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
 
         if (!response.ok || !data.success) {
           throw new Error(data.error || "Failed to load raffles");
@@ -363,7 +377,7 @@ const AdminDashboard = () => {
       const response = await fetch(`${API_BASE_URL}/api/admin/raffles/${raffleId}`, {
         method: "DELETE",
       });
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || "Failed to delete raffle");
@@ -414,7 +428,7 @@ const AdminDashboard = () => {
         },
         body: JSON.stringify(payload),
       });
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || "Failed to create raffle");
