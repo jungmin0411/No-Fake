@@ -13,25 +13,14 @@ export default function NFTDetailModal({ isOpen, ticket, onClose }) {
 
   return (
     <div className="nft-modal-overlay" onClick={onClose}>
-      <div
-        className="nft-modal-content"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="nft-modal-close"
-          onClick={onClose}
-        >
-          ✕
+      <div className="nft-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="nft-modal-close" onClick={onClose}>
+          닫기
         </button>
 
         <div className="nft-modal-image-wrap">
           {ticket.image ? (
-            <img
-              src={ticket.image}
-              alt={ticket.title}
-              className="nft-modal-image"
-            />
+            <img src={ticket.image} alt={ticket.title} className="nft-modal-image" />
           ) : (
             <div className="nft-modal-image-placeholder">NFT</div>
           )}
@@ -73,11 +62,7 @@ export default function NFTDetailModal({ isOpen, ticket, onClose }) {
           </div>
 
           {ticket.isPrePurchaseReward && ticket.status === "당첨" && (
-            <button
-              type="button"
-              className="full-btn"
-              onClick={handleUseTicket}
-            >
+            <button type="button" className="full-btn" onClick={handleUseTicket}>
               사용하기
             </button>
           )}

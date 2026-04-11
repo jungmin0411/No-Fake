@@ -5,13 +5,11 @@ const isSecondPrizeTicket = (ticket, revealState = {}) => {
   const revealKey = ticket.eventSlug || ticket.slug || ticket.event?.slug || "";
   const revealMeta = revealState[revealKey] || {};
 
-  if (revealMeta.result === "second") {
-    return true;
-  }
+  if (revealMeta.result === "second") return true;
+  if (revealMeta.result && revealMeta.result !== "second") return false;
 
   const joinedText = `${ticket.status || ""} ${ticket.reward || ""} ${ticket.title || ""}`.toLowerCase();
-
-  return joinedText.includes("2등") || joinedText.includes("퍼즐");
+  return joinedText.includes("second") || joinedText.includes("puzzle");
 };
 
 export function derivePuzzlePieces(tickets = [], revealState = {}) {
@@ -20,8 +18,8 @@ export function derivePuzzlePieces(tickets = [], revealState = {}) {
     .filter((ticket) => isSecondPrizeTicket(ticket, revealState))
     .map((ticket, index) => ({
       id: ticket.eventId || ticket.id || `${ticket.eventSlug || "puzzle"}-${index + 1}`,
-      type: "퍼즐 조각",
-      title: ticket.eventName || ticket.title || `퍼즐 조각 ${index + 1}`,
+      type: "퍼즐조각",
+      title: ticket.eventName || ticket.title || `퍼즐조각 ${index + 1}`,
       image: PUZZLE_IMAGE_URL,
       selected: false,
       eventSlug: ticket.eventSlug || "",

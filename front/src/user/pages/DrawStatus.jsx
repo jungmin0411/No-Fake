@@ -1,5 +1,6 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DrawResultModal from "../components/DrawResultModal";
+import { getWalletRevealState, saveWalletRevealState } from "../utils/walletStorage";
 
 const PUZZLE_IMAGE_URL =
   "https://nofake.s3.ap-northeast-2.amazonaws.com/images/post-reveal/2.png";
@@ -21,26 +22,17 @@ const getProductsFromEvent = (event) => [
   },
 ];
 
-const getStoredRevealState = () => {
-  try {
-    return JSON.parse(localStorage.getItem("revealState") || "{}");
-  } catch (error) {
-    console.error("Failed to parse revealState:", error);
-    return {};
-  }
-};
-
 const getResultLabel = (result) => {
   if (result === "first") return "1등";
   if (result === "second") return "2등";
   return "꽝";
 };
 
-export default function DrawStatus({ events = [] }) {
+export default function DrawStatus({ events = [], walletAddress = "" }) {
   const [isResultOpen, setIsResultOpen] = useState(false);
   const [selectedEventSlug, setSelectedEventSlug] = useState("");
   const [checkedResults, setCheckedResults] = useState(() => {
-    const revealState = getStoredRevealState();
+    const revealState = getWalletRevealState(walletAddress);
 
     return Object.fromEntries(
       Object.entries(revealState).map(([slug, meta]) => [slug, Boolean(meta?.hasCheckedResult)])
@@ -60,7 +52,7 @@ export default function DrawStatus({ events = [] }) {
 
   useEffect(() => {
     const syncCheckedResults = () => {
-      const revealState = getStoredRevealState();
+      const revealState = getWalletRevealState(walletAddress);
 
       setCheckedResults(
         Object.fromEntries(
@@ -76,7 +68,7 @@ export default function DrawStatus({ events = [] }) {
       window.removeEventListener("storage", syncCheckedResults);
       window.removeEventListener("focus", syncCheckedResults);
     };
-  }, []);
+  }, [walletAddress]);
 
   const selectedEvent = useMemo(
     () => events.find((event) => event.slug === selectedEventSlug) || events[0],
@@ -124,7 +116,7 @@ export default function DrawStatus({ events = [] }) {
   const handleOpenResult = () => {
     if (!isRevealed) return;
 
-    const revealState = getStoredRevealState();
+    const revealState = getWalletRevealState(walletAddress);
     const nextRevealState = {
       ...revealState,
       [selectedEvent.slug]: {
@@ -133,7 +125,7 @@ export default function DrawStatus({ events = [] }) {
       },
     };
 
-    localStorage.setItem("revealState", JSON.stringify(nextRevealState));
+    saveWalletRevealState(walletAddress, nextRevealState);
     setCheckedResults((prev) => ({ ...prev, [selectedEvent.slug]: true }));
     setIsResultOpen(true);
   };

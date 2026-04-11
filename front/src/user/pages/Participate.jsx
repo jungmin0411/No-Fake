@@ -2,8 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { mintMysteryBox } from "../services/mint";
 import SimpleToast from "../components/SimpleToast";
+import {
+  getWalletMintedEventsById,
+  getWalletMintedTickets,
+  saveWalletMintedEventsById,
+  saveWalletMintedTickets,
+} from "../utils/walletStorage";
 
-const MINTED_STORAGE_KEY = "mintedEventsById";
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3002";
 
 export default function Participate({ walletAddress, events = [] }) {
@@ -11,8 +16,7 @@ export default function Participate({ walletAddress, events = [] }) {
   const [isMinting, setIsMinting] = useState(false);
   const sessionRef = useRef(null);
   const [mintedEventsById, setMintedEventsById] = useState(() => {
-    const saved = localStorage.getItem(MINTED_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : {};
+    return getWalletMintedEventsById(walletAddress);
   });
   const [toast, setToast] = useState({
     open: false,
@@ -25,6 +29,10 @@ export default function Participate({ walletAddress, events = [] }) {
   const mintedKey = event ? String(event.id) : "";
   const isMinted = event ? Boolean(mintedEventsById[mintedKey]) : false;
   const isMintClosed = event?.status?.mintClosed ?? false;
+
+  useEffect(() => {
+    setMintedEventsById(getWalletMintedEventsById(walletAddress));
+  }, [walletAddress]);
 
   useEffect(() => {
     if (!event?.id) return;
@@ -127,13 +135,12 @@ export default function Participate({ walletAddress, events = [] }) {
           [mintedKey]: true,
         };
 
-        localStorage.setItem(MINTED_STORAGE_KEY, JSON.stringify(next));
+        saveWalletMintedEventsById(walletAddress, next);
         window.dispatchEvent(new Event("minted-events-updated"));
         return next;
       });
 
-      const savedMintedTickets = localStorage.getItem("mintedTickets");
-      const mintedTickets = savedMintedTickets ? JSON.parse(savedMintedTickets) : [];
+      const mintedTickets = getWalletMintedTickets(walletAddress);
 
       const alreadyExists = mintedTickets.some(
         (ticket) => ticket.eventId === event.id && ticket.source === "minted"
@@ -146,7 +153,7 @@ export default function Participate({ walletAddress, events = [] }) {
           eventSlug: event.slug,
           title: `${event.shortTitle} 미스터리 박스`,
           eventName: event.shortTitle,
-          image: "",
+            image: "",
           contractAddress: event.transparency.contractAddress,
           mintedDate: new Date().toLocaleDateString("ko-KR"),
           expiryDate: "2026-12-31",
@@ -159,7 +166,7 @@ export default function Participate({ walletAddress, events = [] }) {
         };
 
         const nextTickets = [...mintedTickets, newTicket];
-        localStorage.setItem("mintedTickets", JSON.stringify(nextTickets));
+        saveWalletMintedTickets(walletAddress, nextTickets);
       }
 
       showToast("민팅이 완료되었습니다.", "success");

@@ -13,6 +13,15 @@ import MyWallet from "./pages/MyWallet";
 import PuzzleExchange from "./pages/PuzzleExchange";
 import Marketplace from "./pages/Marketplace";
 import TransparencyCenter from "./pages/TransparencyCenter";
+import {
+  clearWalletScopedStorage,
+  getWalletAddressStorageKey,
+  getWalletMintedEventsById,
+  getWalletMintedTickets,
+  getWalletRevealState,
+  saveWalletMintedTickets,
+  saveWalletRevealState,
+} from "./utils/walletStorage";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3002";
 
@@ -158,12 +167,11 @@ function ProtectedLayout({ children, walletAddress, onLogout }) {
 
 function UserDashboard() {
   const location = useLocation();
-  const [walletAddress, setWalletAddress] = useState(() => localStorage.getItem("testWalletAddress") || "");
-  const [revealState, setRevealState] = useState(() => JSON.parse(localStorage.getItem("revealState") || "{}"));
+  const [walletAddress, setWalletAddress] = useState(() => localStorage.getItem(getWalletAddressStorageKey()) || "");
+  const [revealState, setRevealState] = useState(() => getWalletRevealState(localStorage.getItem(getWalletAddressStorageKey()) || ""));
   const [allEvents, setAllEvents] = useState([]);
   const [mintedEventIds, setMintedEventIds] = useState(() => {
-    const saved = localStorage.getItem("mintedEventsById");
-    const parsed = saved ? JSON.parse(saved) : {};
+    const parsed = getWalletMintedEventsById(localStorage.getItem(getWalletAddressStorageKey()) || "");
     return Object.keys(parsed).filter((key) => parsed[key]);
   });
 
@@ -171,10 +179,8 @@ function UserDashboard() {
     let cancelled = false;
 
     const syncLocalState = () => {
-      const savedRevealState = localStorage.getItem("revealState");
-      const savedMintedEvents = localStorage.getItem("mintedEventsById");
-      const parsedRevealState = savedRevealState ? JSON.parse(savedRevealState) : {};
-      const parsedMintedEvents = savedMintedEvents ? JSON.parse(savedMintedEvents) : {};
+      const parsedRevealState = getWalletRevealState(walletAddress);
+      const parsedMintedEvents = getWalletMintedEventsById(walletAddress);
 
       if (!cancelled) {
         setRevealState(parsedRevealState);
@@ -195,7 +201,7 @@ function UserDashboard() {
         }
 
         if (!cancelled) {
-          const latestRevealState = JSON.parse(localStorage.getItem("revealState") || "{}");
+          const latestRevealState = getWalletRevealState(walletAddress);
           const nextRevealState = { ...latestRevealState };
 
           data.forEach((raffle) => {
@@ -212,9 +218,47 @@ function UserDashboard() {
             };
           });
 
-          localStorage.setItem("revealState", JSON.stringify(nextRevealState));
+          const syncedMintedTickets = getWalletMintedTickets(walletAddress)
+            .map((ticket) => {
+              const matchingRaffle = data.find((raffle) => raffle.id === ticket.eventId);
+
+                if (!matchingRaffle) {
+                  return ticket;
+                }
+
+                const ticketWithImage = {
+                  ...ticket,
+                  image: ticket.image || matchingRaffle.imageUrl || "",
+                };
+
+                if (matchingRaffle.status !== "REVEALED") {
+                  return ticketWithImage;
+                }
+
+              const ticketResult = matchingRaffle.userResult || "lose";
+              if (ticketResult === "lose") {
+                return null;
+              }
+
+              return {
+                  ...ticketWithImage,
+                result: ticketResult,
+                status: "당첨",
+                reward: ticketResult === "first" ? "당첨권" : "퍼즐조각",
+                usageGuide:
+                  ticketResult === "first"
+                    ? "당첨권이 지갑에 저장되었습니다."
+                    : "퍼즐조각이 지갑에 저장되었습니다.",
+                isPrePurchaseReward: ticketResult === "first",
+              };
+            })
+            .filter(Boolean);
+
+          saveWalletMintedTickets(walletAddress, syncedMintedTickets);
+          saveWalletRevealState(walletAddress, nextRevealState);
           setRevealState(nextRevealState);
           setAllEvents(data.map((raffle) => mapRaffleToEvent(raffle, nextRevealState)));
+          window.dispatchEvent(new Event("minted-events-updated"));
         }
       } catch (error) {
         console.error("Failed to fetch user raffles:", error);
@@ -229,7 +273,11 @@ function UserDashboard() {
     };
 
     const handleStorage = (event) => {
-      if (event.key === "revealState" || event.key === "mintedEventsById" || event.key === "mintedTickets") {
+      const revealStateKey = walletAddress ? `revealState:${walletAddress.toLowerCase()}` : "revealState";
+      const mintedEventsKey = walletAddress ? `mintedEventsById:${walletAddress.toLowerCase()}` : "mintedEventsById";
+      const mintedTicketsKey = walletAddress ? `mintedTickets:${walletAddress.toLowerCase()}` : "mintedTickets";
+
+      if (event.key === revealStateKey || event.key === mintedEventsKey || event.key === mintedTicketsKey) {
         fetchRaffles();
       }
     };
@@ -266,18 +314,15 @@ function UserDashboard() {
   );
 
   const handleDisconnectWallet = () => {
-    localStorage.removeItem("testWalletAddress");
-    localStorage.removeItem("mintedEvents");
-    localStorage.removeItem("mintedEventsById");
-    localStorage.removeItem("mintedTickets");
-    localStorage.removeItem("revealState");
+    clearWalletScopedStorage(walletAddress);
+    localStorage.removeItem(getWalletAddressStorageKey());
     setWalletAddress("");
     setRevealState({});
     setMintedEventIds([]);
   };
 
   const handleLoginSuccess = (newWalletAddress) => {
-    localStorage.setItem("testWalletAddress", newWalletAddress);
+    localStorage.setItem(getWalletAddressStorageKey(), newWalletAddress);
     setWalletAddress(newWalletAddress);
   };
 
@@ -306,7 +351,7 @@ function UserDashboard() {
   if (pathname === "/draw-status") {
     return (
       <ProtectedLayout walletAddress={walletAddress} onLogout={handleDisconnectWallet}>
-        <DrawStatus events={drawEvents} />
+        <DrawStatus events={drawEvents} walletAddress={walletAddress} />
       </ProtectedLayout>
     );
   }
@@ -314,7 +359,7 @@ function UserDashboard() {
   if (pathname === "/my-wallet") {
     return (
       <ProtectedLayout walletAddress={walletAddress} onLogout={handleDisconnectWallet}>
-        <MyWallet revealState={revealState} />
+        <MyWallet revealState={revealState} walletAddress={walletAddress} />
       </ProtectedLayout>
     );
   }
@@ -322,7 +367,7 @@ function UserDashboard() {
   if (pathname === "/puzzle-exchange") {
     return (
       <ProtectedLayout walletAddress={walletAddress} onLogout={handleDisconnectWallet}>
-        <PuzzleExchange revealState={revealState} />
+        <PuzzleExchange revealState={revealState} walletAddress={walletAddress} />
       </ProtectedLayout>
     );
   }

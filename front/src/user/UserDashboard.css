@@ -1307,6 +1307,10 @@ section p {
   gap: 16px;
 }
 
+.wallet-page .wallet-summary-grid.wallet-summary-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .wallet-summary-card {
   text-align: center;
 }
@@ -1745,6 +1749,22 @@ section p {
   width: 100%;
   color: inherit;
   text-align: center;
+}
+
+.puzzle-piece-image-wrap {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.puzzle-piece-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 /* ========================= */
@@ -3494,6 +3514,10 @@ section p {
 }
 
 @media (max-width: 900px) {
+  .wallet-page .wallet-summary-grid.wallet-summary-grid--three {
+    grid-template-columns: 1fr;
+  }
+
   .board-list {
     grid-template-columns: 1fr;
   }

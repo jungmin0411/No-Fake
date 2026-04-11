@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { derivePuzzlePieces } from "../utils/derivePuzzlePieces";
+import { getWalletMintedTickets } from "../utils/walletStorage";
 
 const TARGET_COUNT = 10;
 const REWARDS = [
@@ -21,18 +22,17 @@ const REWARDS = [
 ];
 
 const PROCESS = [
-  "래플에서 2등 당첨 시 퍼즐 조각이 1개 적립됩니다.",
-  "보유한 퍼즐 조각을 선택한 뒤 교환 가능한 보상을 확인합니다.",
-  "필요 수량을 모으면 쿠폰으로 교환할 수 있습니다.",
+  "래플에서 2등 당첨 시 퍼즐조각 1개가 적립됩니다.",
+  "보유한 퍼즐조각을 선택하고 교환 가능한 보상을 확인합니다.",
+  "필요 수량을 모으면 쿠폰 보상으로 교환할 수 있습니다.",
 ];
 
-export default function PuzzleExchange({ revealState = {} }) {
+export default function PuzzleExchange({ revealState = {}, walletAddress = "" }) {
   const [pieces, setPieces] = useState([]);
 
   useEffect(() => {
     const loadPieces = () => {
-      const savedMintedTickets = localStorage.getItem("mintedTickets");
-      const mintedTickets = savedMintedTickets ? JSON.parse(savedMintedTickets) : [];
+      const mintedTickets = getWalletMintedTickets(walletAddress);
       setPieces(derivePuzzlePieces(mintedTickets, revealState));
     };
 
@@ -42,7 +42,7 @@ export default function PuzzleExchange({ revealState = {} }) {
     return () => {
       window.removeEventListener("minted-events-updated", loadPieces);
     };
-  }, [revealState]);
+  }, [revealState, walletAddress]);
 
   const ownedCount = pieces.length;
   const selectedPieces = useMemo(() => pieces.filter((piece) => piece.selected), [pieces]);
@@ -75,11 +75,11 @@ export default function PuzzleExchange({ revealState = {} }) {
     <section className="puzzle-page">
       <div className="page-heading">
         <h2>퍼즐 교환소</h2>
-        <p>2등 당첨으로 모은 퍼즐 조각을 쿠폰 보상으로 교환할 수 있습니다.</p>
+        <p>2등 당첨으로 모은 퍼즐조각을 쿠폰 보상으로 교환할 수 있습니다.</p>
       </div>
 
       <div className="puzzle-top-card">
-        <span className="puzzle-top-label">현재 보유 퍼즐 조각</span>
+        <span className="puzzle-top-label">현재 보유 퍼즐조각</span>
         <strong>
           {ownedCount} / {TARGET_COUNT}
         </strong>
@@ -94,12 +94,12 @@ export default function PuzzleExchange({ revealState = {} }) {
       <div className="puzzle-content-grid">
         <div className="home-card">
           <div className="card-header-row">
-            <h3 className="card-title">내 퍼즐 조각</h3>
+            <h3 className="card-title">보유 퍼즐조각</h3>
             <span className="status-badge purple">{ownedCount}개</span>
           </div>
 
           {pieces.length === 0 ? (
-            <p className="helper-text center-text">아직 적립된 퍼즐 조각이 없습니다.</p>
+            <p className="helper-text center-text">아직 적립된 퍼즐조각이 없습니다.</p>
           ) : (
             <>
               <div className="puzzle-piece-grid">
@@ -110,7 +110,13 @@ export default function PuzzleExchange({ revealState = {} }) {
                     className={`puzzle-piece-item ${piece.selected ? "selected" : ""}`}
                     onClick={() => handleTogglePiece(piece.id)}
                   >
-                    <div className="puzzle-piece-icon">퍼즐</div>
+                    {piece.image ? (
+                      <div className="puzzle-piece-image-wrap">
+                        <img src={piece.image} alt={piece.title} className="puzzle-piece-image" />
+                      </div>
+                    ) : (
+                      <div className="puzzle-piece-icon">퍼즐</div>
+                    )}
                     <strong>{piece.title}</strong>
                   </button>
                 ))}
