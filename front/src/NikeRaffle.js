@@ -3,7 +3,7 @@ import { ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./NikeRaffle.css";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3002";
 
 const NikeRaffle = ({ walletAddress }) => {
   const [scrolled, setScrolled] = useState(false);

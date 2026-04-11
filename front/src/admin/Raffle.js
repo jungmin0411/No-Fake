@@ -17,13 +17,6 @@ const formatDateTime = (value) => {
   return date.toLocaleString("ko-KR");
 };
 
-const toSlug = (value) =>
-  String(value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9가-힣\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
 
 const mapStatusLabel = (status) => {
   if (status === "MINTING") return "진행중";
@@ -169,7 +162,7 @@ const ParticipantsModal = ({ participants, onClose }) => (
 
 export default function Raffle() {
   const { id: raffleId } = useParams();
-  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
+  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "http://localhost:3002";
   const [raffle, setRaffle] = useState(null);
   const [startAt, setStartAt] = useState(toLocalInput(new Date()));
   const [endAt, setEndAt] = useState(toLocalInput(new Date(Date.now() + 3 * 86400000)));
@@ -299,77 +292,14 @@ export default function Raffle() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "결과 공개에 실패했습니다.");
+        throw new Error(result.error || "?? ??? ??????.");
       }
 
-      const revealKey = toSlug(raffle?.title || raffleId);
-      const savedRevealState = localStorage.getItem("revealState");
-      const nextRevealState = savedRevealState ? JSON.parse(savedRevealState) : {};
-      const savedMintedTickets = localStorage.getItem("mintedTickets");
-      const mintedTickets = savedMintedTickets ? JSON.parse(savedMintedTickets) : [];
-      const matchedTickets = mintedTickets
-        .filter((ticket) => String(ticket.eventId) === String(raffleId) || ticket.eventSlug === revealKey)
-        .sort((a, b) => {
-          const orderA = Number(a.mintOrder || 0);
-          const orderB = Number(b.mintOrder || 0);
-
-          if (orderA > 0 && orderB > 0) return orderA - orderB;
-          return Number(a.id || 0) - Number(b.id || 0);
-        });
-
-      const participantCount = matchedTickets.length;
-      const effectiveFirstPrizeCount = Math.min(Number(raffle?.firstPrizeCount || 0), participantCount);
-      const remainingAfterFirst = Math.max(participantCount - effectiveFirstPrizeCount, 0);
-      const effectiveSecondPrizeCount = Math.min(Number(raffle?.secondPrizeCount || 0), remainingAfterFirst);
-
-      matchedTickets.forEach((ticket, index) => {
-        const mintOrder = Number(ticket.mintOrder || index + 1 || 0);
-        let currentResult = "lose";
-
-        if (mintOrder > 0 && mintOrder <= effectiveFirstPrizeCount) {
-          currentResult = "first";
-          ticket.status = "당첨";
-          ticket.reward = "1등: 선구매권";
-          ticket.usageGuide = "1등 당첨으로 선구매권이 지급되었습니다.";
-          ticket.isPrePurchaseReward = true;
-        } else if (
-          mintOrder > effectiveFirstPrizeCount &&
-          mintOrder <= effectiveFirstPrizeCount + effectiveSecondPrizeCount
-        ) {
-          currentResult = "second";
-          ticket.status = "2등";
-          ticket.reward = "2등: 퍼즐 조각";
-          ticket.usageGuide = "2등 당첨으로 퍼즐 조각 1개가 적립되었습니다.";
-          ticket.isPrePurchaseReward = false;
-        } else {
-          currentResult = "lose";
-          ticket.status = "미당첨";
-          ticket.reward = "미당첨";
-          ticket.usageGuide = "아쉽지만 이번 래플은 미당첨입니다.";
-          ticket.isPrePurchaseReward = false;
-        }
-
-        ticket.mintOrder = mintOrder;
-
-        nextRevealState[ticket.eventSlug || revealKey] = {
-          isRevealed: true,
-          result: currentResult,
-        };
-      });
-
-      nextRevealState[revealKey] = nextRevealState[revealKey] || {
-        isRevealed: true,
-        result: "lose",
-      };
-
-      localStorage.setItem("mintedTickets", JSON.stringify(mintedTickets));
-      localStorage.setItem("revealState", JSON.stringify(nextRevealState));
-      window.dispatchEvent(new Event("minted-events-updated"));
-
       await loadRaffle();
-      showToast("래플 결과가 공개되었습니다.");
+      window.dispatchEvent(new Event("minted-events-updated"));
+      showToast("?? ??? ???????.");
     } catch (error) {
-      showToast(error.message || "결과 공개에 실패했습니다.");
+      showToast(error.message || "?? ??? ??????.");
     } finally {
       setConfirmModal({ open: false, type: null, loading: false });
     }

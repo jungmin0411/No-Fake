@@ -4,7 +4,7 @@ import { mintMysteryBox } from "../services/mint";
 import SimpleToast from "../components/SimpleToast";
 
 const MINTED_STORAGE_KEY = "mintedEventsById";
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3002";
 
 export default function Participate({ walletAddress, events = [] }) {
   const { slug } = useParams();

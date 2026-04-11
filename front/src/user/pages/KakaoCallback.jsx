@@ -5,7 +5,7 @@ import { Web3Auth } from "@web3auth/modal";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { AuthAdapter } from "@web3auth/auth-adapter";
 
-const API_BASE_URL = "https://outrage-overboard-unrevised.ngrok-free.dev";
+const API_BASE_URL = process.env.REACT_APP_AUTH_BASE_URL || "http://localhost:3001";
 const REDIRECT_TARGET = "/home";
 const WALLET_STORAGE_KEY = "testWalletAddress";
 

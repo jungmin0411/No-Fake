@@ -6,10 +6,14 @@ import jwksClient from 'jwks-rsa';
 import axios from 'axios';
 import { Contract, JsonRpcProvider } from 'ethers';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// 1. 환경 설정 로드
-dotenv.config();
-dotenv.config({ path: '../.env', override: false });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 1. ??? ??? ???
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const port = process.env.PORT || 3001;
