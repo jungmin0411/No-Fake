@@ -1,4 +1,4 @@
-﻿import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import "./UserDashboard.css";
 
@@ -14,7 +14,7 @@ import PuzzleExchange from "./pages/PuzzleExchange";
 import Marketplace from "./pages/Marketplace";
 import TransparencyCenter from "./pages/TransparencyCenter";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3002";
 
 const toSlug = (value) =>
   String(value || "")
@@ -78,23 +78,6 @@ const getStatusMeta = (status, startAt, endAt) => {
   };
 };
 
-const inferRevealResult = (raffle) => {
-  const participantCount = Number(raffle.participants || 0);
-  const firstPrizeCount = Number(raffle.firstPrizeCount || 0);
-  const secondPrizeCount = Number(raffle.secondPrizeCount || 0);
-
-  if (raffle.status !== "REVEALED") {
-    return null;
-  }
-
-  if (participantCount === 1) {
-    if (firstPrizeCount >= 1) return "first";
-    if (secondPrizeCount >= 1) return "second";
-  }
-
-  return "lose";
-};
-
 const getResultStatusLabel = (result, hasCheckedResult) => {
   if (!hasCheckedResult) return "결과공개";
   if (result === "first") return "1등";
@@ -106,7 +89,7 @@ const mapRaffleToEvent = (raffle, revealState = {}) => {
   const slug = toSlug(raffle.title || raffle.id);
   const statusMeta = getStatusMeta(raffle.status, raffle.startAt, raffle.endAt);
   const revealMeta = revealState[slug] || {};
-  const resolvedResult = revealMeta.result || inferRevealResult(raffle) || "lose";
+  const resolvedResult = revealMeta.result || raffle.userResult || "lose";
   const isRevealed = revealMeta.isRevealed ?? raffle.status === "REVEALED";
   const hasCheckedResult = Boolean(revealMeta.hasCheckedResult);
 
@@ -122,10 +105,11 @@ const mapRaffleToEvent = (raffle, revealState = {}) => {
     overviewSubtitle: raffle.category
       ? `${raffle.category} 카테고리 래플 이벤트입니다.`
       : "래플 이벤트 상세 정보를 확인해보세요.",
+    hasParticipated: Boolean(raffle.hasParticipated),
     result: resolvedResult,
     status: {
       participants: Number(raffle.participants || 0),
-      maxParticipants: Math.max(Number(raffle.firstPrizeCount || 0) + Number(raffle.secondPrizeCount || 0), 1),
+      maxParticipants: Math.max(Number(raffle.maxParticipants || 30), 1),
       winners: Number(raffle.firstPrizeCount || 0) + Number(raffle.secondPrizeCount || 0),
       statusText: isRevealed ? getResultStatusLabel(resolvedResult, hasCheckedResult) : statusMeta.statusText,
       progress: 0,
@@ -202,7 +186,8 @@ function UserDashboard() {
       try {
         syncLocalState();
 
-        const response = await fetch(`${API_BASE_URL}/api/raffles`);
+        const query = walletAddress ? `?walletAddress=${encodeURIComponent(walletAddress)}` : "";
+        const response = await fetch(`${API_BASE_URL}/api/raffles${query}`);
         const data = await response.json();
 
         if (!response.ok || !Array.isArray(data)) {
@@ -211,7 +196,25 @@ function UserDashboard() {
 
         if (!cancelled) {
           const latestRevealState = JSON.parse(localStorage.getItem("revealState") || "{}");
-          setAllEvents(data.map((raffle) => mapRaffleToEvent(raffle, latestRevealState)));
+          const nextRevealState = { ...latestRevealState };
+
+          data.forEach((raffle) => {
+            if (!raffle.hasParticipated) return;
+
+            const slug = toSlug(raffle.title || raffle.id);
+            nextRevealState[slug] = {
+              ...(nextRevealState[slug] || {}),
+              isRevealed: raffle.status === "REVEALED",
+              result:
+                raffle.status === "REVEALED"
+                  ? raffle.userResult || nextRevealState[slug]?.result || "lose"
+                  : nextRevealState[slug]?.result,
+            };
+          });
+
+          localStorage.setItem("revealState", JSON.stringify(nextRevealState));
+          setRevealState(nextRevealState);
+          setAllEvents(data.map((raffle) => mapRaffleToEvent(raffle, nextRevealState)));
         }
       } catch (error) {
         console.error("Failed to fetch user raffles:", error);
@@ -245,7 +248,7 @@ function UserDashboard() {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("focus", handleSyncEvent);
     };
-  }, []);
+  }, [walletAddress]);
 
   const homeEvents = useMemo(
     () => allEvents.filter((event) => event.status.statusText === "진행중" && !event.status.isRevealed),
@@ -256,7 +259,7 @@ function UserDashboard() {
     () =>
       allEvents.filter(
         (event) =>
-          mintedEventIds.includes(String(event.id)) &&
+          (event.hasParticipated || mintedEventIds.includes(String(event.id))) &&
           (event.status.isRevealed || ["진행중", "종료"].includes(event.status.statusText))
       ),
     [allEvents, mintedEventIds]

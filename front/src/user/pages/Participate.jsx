@@ -5,7 +5,7 @@ import SimpleToast from "../components/SimpleToast";
 import { ExternalLink, ShieldCheck } from "lucide-react"; // 아이콘 추가
 
 const MINTED_STORAGE_KEY = "mintedEventsById";
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3002";
 
 export default function Participate({ walletAddress, events = [] }) {
   const { slug } = useParams();

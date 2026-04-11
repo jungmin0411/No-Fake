@@ -8,16 +8,16 @@ import cors from "cors";
 import { Sequelize, DataTypes, Op } from "sequelize";
 import crypto from "crypto";
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = 3002;
+const PORT = Number(process.env.PORT || 3002);
 const RPC_URL = process.env.RPC_URL || "";
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
 const OWNER_PRIVATE_KEY = process.env.OWNER_PRIVATE_KEY || process.env.PRIVATE_KEY || "";
@@ -66,6 +66,25 @@ const RaffleSession = sequelize.define(
   },
   {
     indexes: [{ unique: true, fields: ["raffleId", "sessionId"] }],
+  }
+);
+
+const RaffleParticipant = sequelize.define(
+  "RaffleParticipant",
+  {
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    raffleId: { type: DataTypes.INTEGER, allowNull: false },
+    walletAddress: { type: DataTypes.STRING, allowNull: false },
+    joinedAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+    result: {
+      type: DataTypes.ENUM("pending", "first", "second", "lose"),
+      allowNull: false,
+      defaultValue: "pending",
+    },
+    revealedAt: { type: DataTypes.DATE, allowNull: true },
+  },
+  {
+    indexes: [{ unique: true, fields: ["raffleId", "walletAddress"] }],
   }
 );
 
@@ -133,6 +152,15 @@ const ensureWriteContract = () => {
   }
 
   return writeContract;
+};
+
+const normalizeWalletAddress = (value = "") => {
+  const rawAddress = String(value || "").trim();
+  if (!rawAddress || !ethers.isAddress(rawAddress)) {
+    return "";
+  }
+
+  return ethers.getAddress(rawAddress);
 };
 
 const getContractParticipantStats = async () => {
@@ -238,6 +266,88 @@ const serializeRaffle = (raffle, participantStats = {}, analyticsByRaffleId = {}
   };
 };
 
+const serializeRaffleForUser = (
+  raffle,
+  participantStats = {},
+  analyticsByRaffleId = {},
+  participantByRaffleId = {}
+) => {
+  const serialized = serializeRaffle(raffle, participantStats, analyticsByRaffleId);
+  const participant = participantByRaffleId[Number(serialized.id)] || null;
+
+  return {
+    ...serialized,
+    maxParticipants: 30,
+    hasParticipated: Boolean(participant),
+    userResult: participant?.result && participant.result !== "pending" ? participant.result : null,
+    userJoinedAt: participant?.joinedAt || null,
+  };
+};
+
+const getParticipantMapByRaffleId = async (raffleIds = [], walletAddress = "") => {
+  const normalizedWallet = normalizeWalletAddress(walletAddress);
+  if (!raffleIds.length || !normalizedWallet) {
+    return {};
+  }
+
+  const participants = await RaffleParticipant.findAll({
+    where: {
+      raffleId: {
+        [Op.in]: raffleIds,
+      },
+      walletAddress: normalizedWallet,
+    },
+  });
+
+  return Object.fromEntries(
+    participants.map((participant) => {
+      const plain = participant.toJSON ? participant.toJSON() : participant;
+      return [Number(plain.raffleId), plain];
+    })
+  );
+};
+
+const buildRevealAssignments = (participants = [], raffle) => {
+  const raffleId = Number(raffle?.id || 0);
+  const firstPrizeCount = Math.max(Number(raffle?.firstPrizeCount || 0), 0);
+  const secondPrizeCount = Math.max(Number(raffle?.secondPrizeCount || 0), 0);
+  const seedBase = `${raffleId}:${raffle?.provenanceHash || ""}:${participants.length}`;
+
+  const rankedParticipants = [...participants].sort((left, right) => {
+    const leftSeed = crypto
+      .createHash("sha256")
+      .update(`${seedBase}:${left.walletAddress}:${left.joinedAt}:${left.id}`)
+      .digest("hex");
+    const rightSeed = crypto
+      .createHash("sha256")
+      .update(`${seedBase}:${right.walletAddress}:${right.joinedAt}:${right.id}`)
+      .digest("hex");
+
+    return leftSeed.localeCompare(rightSeed);
+  });
+
+  const effectiveFirstPrizeCount = Math.min(firstPrizeCount, rankedParticipants.length);
+  const effectiveSecondPrizeCount = Math.min(
+    secondPrizeCount,
+    Math.max(rankedParticipants.length - effectiveFirstPrizeCount, 0)
+  );
+
+  return rankedParticipants.map((participant, index) => {
+    let result = "lose";
+
+    if (index < effectiveFirstPrizeCount) {
+      result = "first";
+    } else if (index < effectiveFirstPrizeCount + effectiveSecondPrizeCount) {
+      result = "second";
+    }
+
+    return {
+      id: participant.id,
+      result,
+    };
+  });
+};
+
 app.get("/", (req, res) => {
   res.json({
     success: true,
@@ -288,7 +398,16 @@ app.get("/api/raffles", async (req, res) => {
     const raffles = await Raffle.findAll({ order: [["createdAt", "DESC"]] });
     const stats = await getContractParticipantStats().catch(() => ({ totalParticipants: 0, byRaffleId: {} }));
     const analyticsByRaffleId = await getRaffleAnalyticsByIds(raffles.map((raffle) => Number(raffle.id)));
-    res.json(raffles.map((raffle) => serializeRaffle(raffle, stats.byRaffleId, analyticsByRaffleId)));
+    const participantByRaffleId = await getParticipantMapByRaffleId(
+      raffles.map((raffle) => Number(raffle.id)),
+      req.query.walletAddress
+    );
+
+    res.json(
+      raffles.map((raffle) =>
+        serializeRaffleForUser(raffle, stats.byRaffleId, analyticsByRaffleId, participantByRaffleId)
+      )
+    );
   } catch (error) {
     console.error("Failed to fetch raffles:", error);
     res.status(500).json({ error: "Failed to load raffles." });
@@ -484,8 +603,42 @@ app.post("/api/admin/raffles/:id/reveal", async (req, res) => {
       return res.status(404).json({ success: false, error: "Raffle not found." });
     }
 
+    const participants = await RaffleParticipant.findAll({
+      where: { raffleId: Number(req.params.id) },
+      order: [["joinedAt", "ASC"], ["id", "ASC"]],
+    });
+
+    if (!participants.length) {
+      return res.status(400).json({ success: false, error: "No participants to reveal." });
+    }
+
+    const revealAssignments = buildRevealAssignments(participants, raffle);
+    const revealedAt = new Date();
+
+    await Promise.all(
+      revealAssignments.map((assignment) =>
+        RaffleParticipant.update(
+          {
+            result: assignment.result,
+            revealedAt,
+          },
+          { where: { id: assignment.id } }
+        )
+      )
+    );
+
     await raffle.update({ status: "REVEALED" });
-    res.json({ success: true, message: "Raffle result revealed.", data: raffle });
+    res.json({
+      success: true,
+      message: "Raffle result revealed.",
+      data: raffle,
+      summary: {
+        participants: participants.length,
+        firstWinners: revealAssignments.filter((assignment) => assignment.result === "first").length,
+        secondWinners: revealAssignments.filter((assignment) => assignment.result === "second").length,
+        loseCount: revealAssignments.filter((assignment) => assignment.result === "lose").length,
+      },
+    });
   } catch (error) {
     console.error("Failed to reveal raffle:", error);
     res.status(400).json({ success: false, error: "Failed to reveal raffle.", details: error.message });
@@ -537,6 +690,14 @@ app.post("/api/mint", async (req, res) => {
     const contract = ensureWriteContract();
     const tx = await contract.mintRaffleTicket(userAddress, raffle.id);
     const receipt = await tx.wait();
+
+    await RaffleParticipant.upsert({
+      raffleId: raffle.id,
+      walletAddress: normalizeWalletAddress(userAddress),
+      joinedAt: new Date(),
+      result: "pending",
+      revealedAt: null,
+    });
 
     const stats = await getContractParticipantStats();
     const participantCount = stats.byRaffleId[raffle.id] || 0;

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Copy, Check, FileCode2, FileSearch, Receipt, ShieldCheck, Search } from "lucide-react";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3002";
 const DEFAULT_CONTRACT_ADDRESS = "0x398591b6257b8BA14Baf06728a706a5B73dd2795";
 const FALLBACK_CONTRACT_ADDRESS =
   process.env.REACT_APP_NOFAKE_CONTRACT_ADDRESS || DEFAULT_CONTRACT_ADDRESS;

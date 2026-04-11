@@ -17,14 +17,6 @@ const formatDateTime = (value) => {
   return date.toLocaleString("ko-KR");
 };
 
-const toSlug = (value) =>
-  String(value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9가-힣\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-
 const mapStatusLabel = (status) => {
   if (status === "MINTING") return "진행중";
   if (status === "CLOSED") return "종료";
@@ -167,9 +159,23 @@ const ParticipantsModal = ({ participants, onClose }) => (
   </div>
 );
 
+async function parseJsonResponse(response) {
+  const text = await response.text();
+
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(
+      text.startsWith("<!DOCTYPE") || text.startsWith("<html")
+        ? "API 서버 응답이 HTML로 돌아왔습니다. front/.env의 REACT_APP_API_BASE_URL과 백엔드 실행 상태를 확인해주세요."
+        : "서버 응답을 해석하지 못했습니다."
+    );
+  }
+}
+
 export default function Raffle() {
   const { id: raffleId } = useParams();
-  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
+  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "http://localhost:3002";
   const [raffle, setRaffle] = useState(null);
   const [startAt, setStartAt] = useState(toLocalInput(new Date()));
   const [endAt, setEndAt] = useState(toLocalInput(new Date(Date.now() + 3 * 86400000)));
@@ -191,7 +197,7 @@ export default function Raffle() {
     if (!raffleId) return;
 
     const response = await fetch(`${apiBaseUrl}/api/admin/raffles/${raffleId}`);
-    const result = await response.json();
+    const result = await parseJsonResponse(response);
 
     if (!response.ok || !result.success) {
       throw new Error(result.error || "래플 정보를 불러오지 못했습니다.");
@@ -214,6 +220,7 @@ export default function Raffle() {
         id: `${nextRaffle.id}-${index + 1}`,
         name: `참여자 ${index + 1}`,
         walletAddress: "지갑 주소 비공개",
+        joinedAt: null,
       }))
     );
   }, [apiBaseUrl, raffleId]);
@@ -227,7 +234,13 @@ export default function Raffle() {
 
   const statusLabel = mapStatusLabel(raffle?.status);
   const statusColor =
-    raffle?.status === "MINTING" ? "#00ff88" : raffle?.status === "CLOSED" ? "#ff8a00" : raffle?.status === "REVEALED" ? "#60a5fa" : "#888";
+    raffle?.status === "MINTING"
+      ? "#00ff88"
+      : raffle?.status === "CLOSED"
+      ? "#ff8a00"
+      : raffle?.status === "REVEALED"
+      ? "#60a5fa"
+      : "#888";
 
   const countdown = useMemo(() => {
     if (!raffle) return "래플 정보를 불러오는 중입니다.";
@@ -239,6 +252,7 @@ export default function Raffle() {
   const canCloseMint = Boolean(raffle) && raffle.status === "MINTING";
   const canReveal = Boolean(raffle) && raffle.status === "CLOSED";
   const qrEnabled = Boolean(raffle) && ["MINTING", "CLOSED", "REVEALED"].includes(raffle.status);
+  const totalWinners = Number(raffle?.firstPrizeCount || 0) + Number(raffle?.secondPrizeCount || 0);
 
   const handleApply = async () => {
     if (!raffleId) return;
@@ -258,7 +272,7 @@ export default function Raffle() {
           secondPrizeCount: parseInt(prizeInputs.second, 10) || 0,
         }),
       });
-      const result = await response.json();
+      const result = await parseJsonResponse(response);
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || "설정 저장에 실패했습니다.");
@@ -276,7 +290,7 @@ export default function Raffle() {
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/admin/raffles/${raffleId}/close`, { method: "POST" });
-      const result = await response.json();
+      const result = await parseJsonResponse(response);
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || "래플 종료에 실패했습니다.");
@@ -296,77 +310,14 @@ export default function Raffle() {
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/admin/raffles/${raffleId}/reveal`, { method: "POST" });
-      const result = await response.json();
+      const result = await parseJsonResponse(response);
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || "결과 공개에 실패했습니다.");
       }
 
-      const revealKey = toSlug(raffle?.title || raffleId);
-      const savedRevealState = localStorage.getItem("revealState");
-      const nextRevealState = savedRevealState ? JSON.parse(savedRevealState) : {};
-      const savedMintedTickets = localStorage.getItem("mintedTickets");
-      const mintedTickets = savedMintedTickets ? JSON.parse(savedMintedTickets) : [];
-      const matchedTickets = mintedTickets
-        .filter((ticket) => String(ticket.eventId) === String(raffleId) || ticket.eventSlug === revealKey)
-        .sort((a, b) => {
-          const orderA = Number(a.mintOrder || 0);
-          const orderB = Number(b.mintOrder || 0);
-
-          if (orderA > 0 && orderB > 0) return orderA - orderB;
-          return Number(a.id || 0) - Number(b.id || 0);
-        });
-
-      const participantCount = matchedTickets.length;
-      const effectiveFirstPrizeCount = Math.min(Number(raffle?.firstPrizeCount || 0), participantCount);
-      const remainingAfterFirst = Math.max(participantCount - effectiveFirstPrizeCount, 0);
-      const effectiveSecondPrizeCount = Math.min(Number(raffle?.secondPrizeCount || 0), remainingAfterFirst);
-
-      matchedTickets.forEach((ticket, index) => {
-        const mintOrder = Number(ticket.mintOrder || index + 1 || 0);
-        let currentResult = "lose";
-
-        if (mintOrder > 0 && mintOrder <= effectiveFirstPrizeCount) {
-          currentResult = "first";
-          ticket.status = "당첨";
-          ticket.reward = "1등: 선구매권";
-          ticket.usageGuide = "1등 당첨으로 선구매권이 지급되었습니다.";
-          ticket.isPrePurchaseReward = true;
-        } else if (
-          mintOrder > effectiveFirstPrizeCount &&
-          mintOrder <= effectiveFirstPrizeCount + effectiveSecondPrizeCount
-        ) {
-          currentResult = "second";
-          ticket.status = "2등";
-          ticket.reward = "2등: 퍼즐 조각";
-          ticket.usageGuide = "2등 당첨으로 퍼즐 조각 1개가 적립되었습니다.";
-          ticket.isPrePurchaseReward = false;
-        } else {
-          currentResult = "lose";
-          ticket.status = "미당첨";
-          ticket.reward = "미당첨";
-          ticket.usageGuide = "아쉽지만 이번 래플은 미당첨입니다.";
-          ticket.isPrePurchaseReward = false;
-        }
-
-        ticket.mintOrder = mintOrder;
-
-        nextRevealState[ticket.eventSlug || revealKey] = {
-          isRevealed: true,
-          result: currentResult,
-        };
-      });
-
-      nextRevealState[revealKey] = nextRevealState[revealKey] || {
-        isRevealed: true,
-        result: "lose",
-      };
-
-      localStorage.setItem("mintedTickets", JSON.stringify(mintedTickets));
-      localStorage.setItem("revealState", JSON.stringify(nextRevealState));
-      window.dispatchEvent(new Event("minted-events-updated"));
-
       await loadRaffle();
+      window.dispatchEvent(new Event("minted-events-updated"));
       showToast("래플 결과가 공개되었습니다.");
     } catch (error) {
       showToast(error.message || "결과 공개에 실패했습니다.");
@@ -440,9 +391,9 @@ export default function Raffle() {
               </div>
               <div className="nf-stat-row">
                 <div>
-                  <div className="nf-stat-label">당첨 수량</div>
+                  <div className="nf-stat-label">당첨자 수</div>
                   <div className="nf-stat-value" style={{ color: "var(--color-orange)" }}>
-                    {(Number(raffle?.firstPrizeCount || 0) + Number(raffle?.secondPrizeCount || 0)).toLocaleString()}명
+                    {totalWinners.toLocaleString()}명
                   </div>
                   <div className="nf-stat-sub">
                     1등 {Number(raffle?.firstPrizeCount || 0)}명 / 2등 {Number(raffle?.secondPrizeCount || 0)}명
@@ -499,7 +450,7 @@ export default function Raffle() {
           <div className="nf-action-grid">
             <div className="nf-action-card">
               <h3>1. 민팅 마감</h3>
-              <p>진행중인 래플의 응모를 종료하고 상태를 종료로 변경합니다.</p>
+              <p>진행중인 래플의 참여를 마감하고 상태를 종료로 변경합니다.</p>
               <button
                 className={`nf-btn-mint ${!canCloseMint ? "nf-btn-mint--closed" : ""}`}
                 onClick={() => setConfirmModal({ open: true, type: "mint", loading: false })}
