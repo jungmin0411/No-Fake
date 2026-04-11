@@ -1,26 +1,35 @@
-import { useMemo, useState } from "react";
-import { ArrowUpRight, Copy, Check } from "lucide-react";
+import { useState } from "react";
+import { Copy, Check } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const ETHERSCAN_ADDRESS_BASE_URL =
-  process.env.REACT_APP_ETHERSCAN_BASE_URL || "https://sepolia.etherscan.io/address";
 
 function formatWalletAddress(address) {
   if (!address) return "";
   return `${address.slice(0, 8)}...${address.slice(-6)}`;
 }
 
+function fallbackCopyText(value) {
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.top = "-9999px";
+  textarea.style.left = "-9999px";
+
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!copied) {
+    throw new Error("Fallback copy failed");
+  }
+}
+
 export default function Header({ walletAddress, onLogout }) {
   const [copied, setCopied] = useState(false);
   const isConnected = Boolean(walletAddress);
-
-  const walletExplorerUrl = useMemo(() => {
-    if (!walletAddress) {
-      return ETHERSCAN_ADDRESS_BASE_URL;
-    }
-
-    return `${ETHERSCAN_ADDRESS_BASE_URL}/${walletAddress}`;
-  }, [walletAddress]);
 
   const handleCopyWallet = async () => {
     if (!walletAddress) {
@@ -28,11 +37,22 @@ export default function Header({ walletAddress, onLogout }) {
     }
 
     try {
-      await navigator.clipboard.writeText(walletAddress);
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(walletAddress);
+      } else {
+        fallbackCopyText(walletAddress);
+      }
+
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch (error) {
-      console.error("Failed to copy wallet address:", error);
+      try {
+        fallbackCopyText(walletAddress);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1800);
+      } catch (fallbackError) {
+        console.error("Failed to copy wallet address:", fallbackError || error);
+      }
     }
   };
 
@@ -42,7 +62,7 @@ export default function Header({ walletAddress, onLogout }) {
         <Link to="/home" className="logo-link">
           <h1 className="logo">NoFAKE</h1>
         </Link>
-        <p className="subtitle">공정하고 투명한 이벤트에 참여하세요.</p>
+        <p className="subtitle">공정하고 투명한 이벤트에 참여하세요</p>
       </div>
 
       <div className="header-actions">
@@ -58,15 +78,6 @@ export default function Header({ walletAddress, onLogout }) {
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? "복사됨" : "주소 복사"}
               </button>
-              <a
-                className="wallet-action-btn wallet-action-btn--link"
-                href={walletExplorerUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                테스트넷 확인
-                <ArrowUpRight size={14} />
-              </a>
             </div>
           </div>
         )}

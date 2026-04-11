@@ -266,7 +266,17 @@ app.get("/health", (req, res) => {
 app.get("/api/admin/contract-stats", async (req, res) => {
   try {
     const stats = await getContractParticipantStats();
-    res.json({ success: true, totalParticipants: stats.totalParticipants });
+    const contractAddress = CONTRACT_ADDRESS || "";
+    const networkName = process.env.NETWORK_NAME || "Ethereum Sepolia";
+    const etherscanBaseUrl = process.env.ETHERSCAN_BASE_URL || "https://sepolia.etherscan.io/address";
+
+    res.json({
+      success: true,
+      totalParticipants: stats.totalParticipants,
+      contractAddress,
+      networkName,
+      etherscanUrl: contractAddress ? `${etherscanBaseUrl}/${contractAddress}` : etherscanBaseUrl,
+    });
   } catch (error) {
     console.error("Failed to load contract stats:", error);
     res.status(500).json({ success: false, error: error.message || "Failed to load contract stats." });
