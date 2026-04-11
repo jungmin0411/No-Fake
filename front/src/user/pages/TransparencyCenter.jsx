@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Copy, Check, FileCode2, FileSearch, Receipt, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, Copy, Check, FileCode2, FileSearch, Receipt, ShieldCheck, Search } from "lucide-react";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
 const DEFAULT_CONTRACT_ADDRESS = "0x398591b6257b8BA14Baf06728a706a5B73dd2795";
@@ -38,6 +38,7 @@ const verificationSteps = [
 
 export default function TransparencyCenter() {
   const [copied, setCopied] = useState(false);
+  const [txInput, setTxInput] = useState(""); // [추가] 사용자가 입력한 트랜잭션 해시
   const [stats, setStats] = useState({
     totalParticipants: 0,
     contractAddress: FALLBACK_CONTRACT_ADDRESS,
@@ -72,7 +73,6 @@ export default function TransparencyCenter() {
         setError("");
       } catch (fetchError) {
         if (!isMounted) return;
-
         console.error("Failed to load transparency center stats:", fetchError);
         setStats((prev) => ({
           ...prev,
@@ -84,24 +84,16 @@ export default function TransparencyCenter() {
     };
 
     fetchTransparencyStats();
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   const contractAddressPreview = useMemo(() => {
-    if (!stats.contractAddress) {
-      return stats.contractAddress;
-    }
-
+    if (!stats.contractAddress) return stats.contractAddress;
     return `${stats.contractAddress.slice(0, 10)}...${stats.contractAddress.slice(-8)}`;
   }, [stats.contractAddress]);
 
   const handleCopyContract = async () => {
-    if (!stats.contractAddress) {
-      return;
-    }
-
+    if (!stats.contractAddress) return;
     try {
       await navigator.clipboard.writeText(stats.contractAddress);
       setCopied(true);
@@ -109,6 +101,14 @@ export default function TransparencyCenter() {
     } catch (copyError) {
       console.error("Failed to copy contract address:", copyError);
     }
+  };
+
+  // [추가] 수동 트랜잭션 조회 함수
+  const handleTxSearch = (e) => {
+    e.preventDefault();
+    if (!txInput.trim()) return;
+    const url = `https://sepolia.etherscan.io/tx/${txInput.trim()}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -133,10 +133,29 @@ export default function TransparencyCenter() {
         </div>
       </div>
 
+      {/* [추가 섹션] 트랜잭션 개별 조회 폼 */}
+      <div className="transparency-hero-card" style={{ marginTop: '20px', background: '#1a1a1a', border: '1px solid #333' }}>
+        <div style={{ width: '100%' }}>
+          <span className="transparency-kicker" style={{ color: '#00ffa3' }}>실시간 트랜잭션 조회</span>
+          <h3 style={{ color: '#fff' }}>보유하신 트랜잭션 해시로 직접 검증하세요</h3>
+          <form onSubmit={handleTxSearch} style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+            <input 
+              type="text" 
+              placeholder="0x로 시작하는 트랜잭션 해시를 입력하세요" 
+              value={txInput}
+              onChange={(e) => setTxInput(e.target.value)}
+              style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #444', background: '#222', color: '#fff' }}
+            />
+            <button type="submit" className="transparency-link-btn" style={{ whiteSpace: 'nowrap' }}>
+              <Search size={16} /> 검증하기
+            </button>
+          </form>
+        </div>
+      </div>
+
       <div className="transparency-step-grid">
         {verificationSteps.map((step) => {
           const Icon = step.icon;
-
           return (
             <article key={step.number} className="transparency-step-card">
               <div className="transparency-step-top">
@@ -183,25 +202,12 @@ export default function TransparencyCenter() {
             </div>
 
             <div className="transparency-contract-meta">
-              <div>
-                <span>네트워크</span>
-                <strong>{stats.networkName}</strong>
-              </div>
-              <div>
-                <span>참여 집계 기준</span>
-                <strong>NoFake.sol totalSupply()</strong>
-              </div>
-              <div>
-                <span>표시 주소</span>
-                <strong>{contractAddressPreview}</strong>
-              </div>
-              <div>
-                <span>라이선스</span>
-                <strong>MIT</strong>
-              </div>
+              <div><span>네트워크</span><strong>{stats.networkName}</strong></div>
+              <div><span>참여 집계 기준</span><strong>NoFake.sol totalSupply()</strong></div>
+              <div><span>표시 주소</span><strong>{contractAddressPreview}</strong></div>
+              <div><span>라이선스</span><strong>MIT</strong></div>
             </div>
           </div>
-
           {error && <p className="transparency-error">{error}</p>}
         </article>
 
