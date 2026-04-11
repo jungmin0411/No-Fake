@@ -1,0 +1,8 @@
+# NoFake Project Provenance Record
+# Generated at: 2026-04-07
+# 알고리즘: SHA-256
+
+# 각 결과 시퀀스의 해시를 결합한 최종 지문(Fingerprint)입니다.
+# 이 값은 컨트랙트 배포 전 팀원들과 공유되어 데이터 무결성을 보장합니다.
+
+PROVENANCE_HASH:해쉬 값 구해야 함!!!

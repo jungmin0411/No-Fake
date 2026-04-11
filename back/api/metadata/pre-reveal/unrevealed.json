@@ -1,0 +1,9 @@
+{
+  "name": "NOFAKE Mystery Ticket",
+  "description": "어떤 상품이 들어있을까요? 주최자의 리빌(Reveal)을 기다려주세요!",
+  "image": "https://nofake.s3.ap-northeast-2.amazonaws.com/images/pre-reveal/unrevealed.png",
+  "attributes": [
+    { "trait_type": "Event Name", "value": "나이키X백석 콜라보이벤트" },
+    { "trait_type": "Status", "value": "Unrevealed" }
+  ]
+}

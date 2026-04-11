@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  nofake-api:
+    build:
+      context: .
+      dockerfile: back/Dockerfile.backend
+    container_name: nofake-api
+    env_file:
+      - .env
+    environment:
+      PORT: 3001
+      DB_STORAGE_PATH: /data/database.sqlite
+    volumes:
+      - nofake_sqlite:/data
+    restart: always
+
+  nofake-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_BASE_URL: ${REACT_APP_API_BASE_URL}
+        REACT_APP_BASE_URL: ${REACT_APP_BASE_URL}
+    container_name: nofake-web
+    depends_on:
+      - nofake-api
+    ports:
+      - "80:80"
+    restart: always
+
+volumes:
+  nofake_sqlite:

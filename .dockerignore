@@ -1,0 +1,9 @@
+node_modules
+front/node_modules
+back/node_modules
+back/api/node_modules
+front/build
+back/api/database.sqlite
+.git
+.DS_Store
+npm-debug.log

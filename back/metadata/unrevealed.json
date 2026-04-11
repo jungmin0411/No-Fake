@@ -1,0 +1,15 @@
+{
+  "name": "NoFake Raffle Ticket",
+  "description": "응모가 완료되었습니다! 추첨 후 결과가 공개됩니다.",
+  "image": "ipfs://[응모_대기_이미지_해시값]",
+  "attributes": [
+    {
+      "trait_type": "Status",
+      "value": "Pending"
+    },
+    {
+      "trait_type": "Raffle",
+      "value": "Active"
+    }
+  ]
+}
